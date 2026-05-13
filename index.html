@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密码科普</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  background:#0b1218;
+  color:#baffff;
+  font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* 背景 */
+#bg{
+  position:fixed;inset:0;z-index:0;
+  background:url('背景图.png') center/cover no-repeat fixed;
+  filter:brightness(0.35);
+}
+#bg::after{
+  content:"";
+  position:fixed;inset:0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(0,255,255,0.08), transparent 30%),
+    radial-gradient(circle at 85% 40%, rgba(255,0,255,0.1), transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(52,255,246,0.06), transparent 40%),
+    linear-gradient(180deg, rgba(2,8,20,0.55) 0%, rgba(5,14,30,0.7) 100%);
+}
+
+/* 粒子canvas */
+#particles{
+  position:fixed;inset:0;z-index:1;
+  pointer-events:none;
+}
+
+/* 主内容区 */
+main{
+  position:relative;z-index:2;
+  max-width:960px;margin:0 auto;padding:40px 24px 80px;
+}
+
+/* 头部 */
+header{
+  text-align:center;padding:80px 0 50px;
+}
+header h1{
+  font-size:clamp(36px,6vw,56px);
+  letter-spacing:0.12em;
+  color:#00ffff;
+  text-shadow:0 0 40px rgba(0,255,255,0.6),0 0 80px rgba(0,255,255,0.2);
+  margin-bottom:16px;
+}
+header .subtitle{
+  font-size:18px;color:#7cfcff;
+  letter-spacing:0.2em;
+  opacity:0.8;
+}
+
+/* 章节卡片 */
+.section-title{
+  text-align:center;font-size:22px;color:#7cfcff;
+  letter-spacing:0.15em;margin:60px 0 30px;
+  text-shadow:0 0 18px rgba(124,252,255,0.4);
+  transition:color .2s;
+}
+a.section-title:hover{color:#00ffff;text-shadow:0 0 28px rgba(0,255,255,0.6);}
+
+.games-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:28px;
+}
+
+.card{
+  background:rgba(2,10,24,0.78);
+  border:1px solid rgba(0,255,255,0.18);
+  border-radius:18px;padding:32px 28px;
+  cursor:pointer;
+  transition:all .3s ease;
+  text-decoration:none;color:inherit;display:block;
+  backdrop-filter:blur(8px);
+}
+.card:hover{
+  border-color:rgba(0,255,255,0.55);
+  box-shadow:0 0 36px rgba(0,255,255,0.14),inset 0 0 40px rgba(0,255,255,0.04);
+  transform:translateY(-4px);
+}
+
+.card .icon{
+  font-size:42px;margin-bottom:14px;
+}
+.card h3{
+  font-size:20px;color:#00ffff;margin-bottom:10px;
+  letter-spacing:0.06em;
+}
+.card p{
+  font-size:14px;color:#8abfc0;line-height:1.7;
+}
+.card .tag{
+  display:inline-block;margin-top:14px;padding:4px 14px;
+  font-size:12px;border-radius:20px;
+  color:#34fff6;border:1px solid rgba(52,255,246,0.35);
+  letter-spacing:0.08em;
+}
+
+.card.coming-soon{
+  opacity:0.55;cursor:default;pointer-events:none;
+}
+.card.coming-soon .tag{
+  color:#888;border-color:rgba(136,136,136,0.3);
+}
+
+/* 知识区 */
+.knowledge{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:24px;margin-top:5px;
+}
+.know-card{
+  background:rgba(2,10,24,0.65);
+  border:1px solid rgba(200,200,255,0.1);
+  border-radius:14px;padding:26px 22px;
+  backdrop-filter:blur(6px);
+  display:block;text-decoration:none;color:inherit;
+  cursor:pointer;transition:all .25s;
+}
+.know-card:hover{
+  border-color:rgba(0,255,255,0.35);
+  box-shadow:0 0 24px rgba(0,255,255,0.08);
+  background:rgba(2,10,24,0.8);
+}
+.know-card h4{
+  color:#b3e0ff;font-size:16px;margin-bottom:8px;
+  letter-spacing:0.05em;
+}
+.know-card p{
+  color:#7a9a9c;font-size:13px;line-height:1.8;
+}
+
+/* 页脚 */
+footer{
+  position:relative;z-index:2;text-align:center;
+  padding:30px;color:#3d5a5c;font-size:13px;
+  letter-spacing:0.1em;
+}
+
+/* 响应式 */
+@media(max-width:600px){
+  header{padding:40px 0 30px;}
+  .games-grid{grid-template-columns:1fr;}
+  .knowledge{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<canvas id="particles"></canvas>
+
+<main>
+  <header>
+    <h1>密码科普</h1>
+    <p class="subtitle">探 索 密 码 学 的 奇 妙 世 界</p>
+  </header>
+
+  <div class="section-title">▸ 互 动 游 戏</div>
+  <div class="games-grid">
+    <a class="card" href="分页面/zkp.html">
+      <div class="icon">🏔️</div>
+      <h3>零知识证明：阿里巴巴的山洞</h3>
+      <p>扮演验证者 Victor，在迷宫中检验证明者是否知道秘密口令。体验"不泄露知识却能证明知识"的核心思想。</p>
+      <span class="tag">点击游玩</span>
+    </a>
+
+    <a class="card" href="分页面/caesar.html">
+      <div class="icon">🔐</div>
+      <h3>凯撒密码破译</h3>
+      <p>体验古典替换密码的加密与破译过程，理解密钥空间和暴力枚举的概念。</p>
+      <span class="tag">点击游玩</span>
+    </a>
+
+    <a class="card" href="分页面/rsa.html">
+      <div class="icon">🔑</div>
+      <h3>RSA 加密实验室</h3>
+      <p>亲手生成公钥私钥对，体验非对称加密的数学原理——大整数分解的困难性。</p>
+      <span class="tag">点击游玩</span>
+    </a>
+
+    <a class="card" href="分页面/enigma.html">
+      <div class="icon">⚙️</div>
+      <h3>恩尼格玛密码机</h3>
+      <p>还原二战德军 Enigma 机——三转子步进、反射器、实时加密。感受多表替换如何让密码复杂化。</p>
+      <span class="tag">点击游玩</span>
+    </a>
+
+    <a class="card" href="分页面/hashchallenge.html">
+      <div class="icon">⛏️</div>
+      <h3>哈希碰撞挑战</h3>
+      <p>模拟比特币工作量证明——暴力枚举 Nonce 找前导零哈希。体会"验证容易、求解困难"的不对称性。</p>
+      <span class="tag">点击游玩</span>
+    </a>
+
+    <a class="card" href="分页面/dh.html">
+      <div class="icon">🤝</div>
+      <h3>DH 密钥交换演示</h3>
+      <p>颜色混合直观类比 + 模幂运算数学版——理解双方如何在公开信道上协商出共享密钥。</p>
+      <span class="tag">点击游玩</span>
+    </a>
+  </div>
+
+  <a class="section-title" href="分页面/knowledge.html" style="text-decoration:none;display:block;">▸ 密 码 学 基 础 知 识 →</a>
+  <div class="knowledge">
+    <a class="know-card" href="分页面/knowledge.html#symmetric">
+      <h4>🔒 对称加密</h4>
+      <p>加密和解密使用同一个密钥。就像一把钥匙既能锁门又能开门。代表算法：AES、DES。速度快，适合大量数据的加密。</p>
+    </a>
+    <a class="know-card" href="分页面/knowledge.html#asymmetric">
+      <h4>🔓 非对称加密</h4>
+      <p>公钥加密，私钥解密。就像带锁的信箱：任何人都能投信（用公钥加密），但只有信箱主人能开箱（用私钥解密）。代表：RSA、ECC。</p>
+    </a>
+    <a class="know-card" href="分页面/knowledge.html#hash">
+      <h4>🧩 哈希函数</h4>
+      <p>将任意长度的数据映射为固定长度的"指纹"。具有单向性（无法反推）和抗碰撞性。常用于密码存储、数据完整性校验。</p>
+    </a>
+    <a class="know-card" href="分页面/knowledge.html#zkp">
+      <h4>🎭 零知识证明</h4>
+      <p>证明者向验证者证明自己知道某个秘密，却不透露秘密本身。就像证明自己知道山洞的暗号，却不必说出暗号是什么。</p>
+    </a>
+    <a class="know-card" href="分页面/knowledge.html#signature">
+      <h4>✍️ 数字签名</h4>
+      <p>用私钥对消息签名，任何人可用对应公钥验证签名。确保消息的来源真实、内容未被篡改，且签名者不可抵赖。</p>
+    </a>
+    <a class="know-card" href="分页面/knowledge.html#blockchain">
+      <h4>🔗 区块链中的密码学</h4>
+      <p>区块链依赖哈希链、数字签名、默克尔树等密码学工具，实现去中心化、不可篡改的分布式账本。</p>
+    </a>
+  </div>
+</main>
+
+<footer>
+  <p>密码科普 &copy; 2026</p>
+</footer>
+
+<script>
+/* 粒子背景 */
+/* === 鼠标拖尾特效 === */
+(function() {
+  const COLORS = ['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const CHARS = '0123456789ABCDEFabcdef';
+  const s = document.createElement('style');
+  s.innerHTML = `
+    .trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;
+      font-family:'Consolas','Courier New',monospace;font-weight:700;
+      animation:trail-float .9s ease-out forwards;}
+    @keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}
+  `;
+  document.head.appendChild(s);
+  let on = false;
+  document.addEventListener('mousemove',(e)=>{
+    if(on)return;on=true;setTimeout(()=>{on=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=CHARS[Math.floor(Math.random()*CHARS.length)];
+      const c=COLORS[Math.floor(Math.random()*COLORS.length)];
+      const fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText=`font-size:${fs}px;left:${e.clientX+ox}px;top:${e.clientY+oy}px;color:${c};text-shadow:0 0 6px ${c};`;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+
+const pCanvas = document.getElementById('particles');
+const pCtx = pCanvas.getContext('2d');
+let particles = [];
+
+function resizeParticles(){
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+}
+resizeParticles();
+window.addEventListener('resize', resizeParticles);
+
+class Particle{
+  constructor(){
+    this.reset();
+    this.y = Math.random() * pCanvas.height;
+  }
+  reset(){
+    this.x = Math.random() * pCanvas.width;
+    this.y = -10;
+    this.size = Math.random() * 2 + 0.5;
+    this.speed = Math.random() * 0.4 + 0.15;
+    this.opacity = Math.random() * 0.5 + 0.15;
+    this.drift = (Math.random() - 0.5) * 0.3;
+  }
+  update(){
+    this.y += this.speed;
+    this.x += this.drift;
+    if(this.y > pCanvas.height + 10){ this.y = -10; this.x = Math.random() * pCanvas.width; }
+  }
+  draw(){
+    pCtx.beginPath();
+    pCtx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    pCtx.fillStyle = `rgba(0,255,255,${this.opacity})`;
+    pCtx.fill();
+  }
+}
+
+for(let i = 0; i < 80; i++) particles.push(new Particle());
+
+function animateParticles(){
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+</script>
+
+</body>
+</html>
