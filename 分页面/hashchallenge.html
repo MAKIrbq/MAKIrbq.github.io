@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>哈希碰撞挑战 · 密码科普</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#0b1218;color:#baffff;
+  font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;
+  min-height:100vh;overflow-x:hidden;
+}
+#bg{
+  position:fixed;inset:0;z-index:0;
+  background:url('../背景图.png') center/cover no-repeat fixed;
+  filter:brightness(0.22);
+}
+#bg::after{content:"";position:fixed;inset:0;
+  background:radial-gradient(circle at 15% 30%,rgba(0,255,255,0.05),transparent 25%),
+  radial-gradient(circle at 85% 55%,rgba(255,0,255,0.06),transparent 30%),
+  linear-gradient(180deg,rgba(2,8,18,0.5),rgba(5,14,30,0.7));}
+
+main{position:relative;z-index:2;max-width:860px;margin:0 auto;padding:30px 20px 60px;}
+
+.back-link{display:inline-flex;align-items:center;gap:8px;color:#7cfcff;
+  text-decoration:none;font-size:14px;letter-spacing:0.08em;margin-bottom:20px;transition:color .2s;}
+.back-link:hover{color:#00ffff;}
+
+header{text-align:center;padding:20px 0 10px;}
+header h1{font-size:clamp(28px,5vw,38px);letter-spacing:0.08em;color:#00ffff;
+  text-shadow:0 0 36px rgba(0,255,255,0.5);margin-bottom:4px;}
+header .subtitle{font-size:14px;color:#7cfcff;letter-spacing:0.12em;opacity:0.7;}
+
+.panel{background:rgba(2,10,24,0.7);border:1px solid rgba(0,255,255,0.14);
+  border-radius:18px;padding:24px 28px;backdrop-filter:blur(8px);margin-bottom:20px;}
+.panel h3{color:#00ffff;font-size:18px;margin:0 0 12px;letter-spacing:0.06em;}
+
+/* 难度选择 */
+.diff-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+.diff-btn{
+  padding:8px 18px;font-size:13px;border-radius:20px;cursor:pointer;
+  background:rgba(0,255,255,0.06);color:#7cfcff;
+  border:1px solid rgba(0,255,255,0.2);transition:all .2s;
+}
+.diff-btn:hover{border-color:rgba(0,255,255,0.5);background:rgba(0,255,255,0.12);}
+.diff-btn.active{background:#34fff6;color:#02060d;border-color:#34fff6;font-weight:700;}
+
+/* 哈希展示 */
+.hash-display{
+  background:rgba(0,0,0,0.45);border-radius:12px;padding:18px 20px;
+  font-family:'Consolas','Courier New',monospace;word-break:break-all;
+  text-align:center;margin:12px 0;
+}
+.hash-display .hash-hex{font-size:20px;letter-spacing:0.05em;}
+.hash-display .match{color:#00ffcc;}
+.hash-display .unmatch{color:rgba(255,255,255,0.2);}
+
+/* 输入行 */
+.input-row{display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;}
+.input-row input{
+  padding:10px 14px;font-size:14px;width:220px;
+  border-radius:10px;background:rgba(255,255,255,0.04);color:#eff;
+  border:1px solid rgba(0,255,255,0.25);outline:none;
+}
+.input-row input:focus{border-color:rgba(0,255,255,0.55);}
+.input-row label{color:#7cfcff;font-size:13px;}
+
+button{
+  padding:10px 22px;font-size:14px;color:#02060d;background:#34fff6;
+  border:none;border-radius:12px;cursor:pointer;font-weight:700;
+  box-shadow:0 0 18px rgba(52,255,246,0.2);transition:all .2s;
+}
+button:hover{background:#5bffff;}
+
+/* 统计区 */
+.stats-row{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin:14px 0;}
+.stat-item{text-align:center;}
+.stat-item .num{font-size:28px;font-weight:700;color:#ffcc00;font-family:'Consolas',monospace;}
+.stat-item .lbl{font-size:12px;color:rgba(124,252,255,0.6);margin-top:2px;}
+
+/* 自动模式 */
+.auto-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.auto-indicator.running{background:#00ffcc;box-shadow:0 0 10px rgba(0,255,204,0.6);animation:pulse .8s infinite;}
+.auto-indicator.stopped{background:rgba(255,255,255,0.2);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.found-box{
+  background:rgba(0,255,204,0.08);border:1px solid rgba(0,255,204,0.3);
+  border-radius:12px;padding:16px 18px;text-align:center;margin-top:12px;
+  display:none;
+}
+.found-box .msg{color:#00ffcc;font-size:16px;margin-bottom:6px;}
+.found-box .detail{color:#8abfc0;font-size:13px;font-family:'Consolas',monospace;word-break:break-all;}
+
+.info-card{background:rgba(2,10,24,0.55);border:1px solid rgba(200,200,255,0.08);
+  border-radius:14px;padding:20px 22px;}
+.info-card h3{color:#00ffff;font-size:17px;margin:0 0 8px;}
+.info-card p{color:#8abfc0;font-size:13px;line-height:1.9;}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<main>
+  <a class="back-link" href="../index.html">◂ 返回首页</a>
+  <header>
+    <h1>哈希碰撞挑战</h1>
+    <p class="subtitle">体 验 工 作 量 证 明 · 感 受 哈 希 的 单 向 性</p>
+  </header>
+
+  <!-- 挑战面板 -->
+  <div class="panel">
+    <h3>寻找满足条件的 Nonce</h3>
+    <p style="color:#8abfc0;font-size:13px;line-height:1.8;margin-bottom:12px;">
+      对"消息 + Nonce"计算 SHA-256，目标是找到哈希值<strong>前 N 位为 0</strong>的 Nonce。
+      这就是比特币挖矿的核心原理——只能暴力枚举，无法反向计算。
+    </p>
+
+    <div class="diff-row" id="diffRow">
+      <div class="diff-btn" data-diff="2">前2位=0 ✓ 约256次</div>
+      <div class="diff-btn" data-diff="3">前3位=0 约4千次</div>
+      <div class="diff-btn active" data-diff="4">前4位=0 约6.5万次</div>
+      <div class="diff-btn" data-diff="5">前5位=0 约100万次</div>
+    </div>
+
+    <div class="input-row">
+      <label>消息：</label>
+      <input id="baseMsg" value="Hello, Blockchain!" placeholder="输入任意消息">
+      <button onclick="startMining()">开始挖矿</button>
+      <button onclick="stopMining()" style="background:transparent;color:#ff3366;border:1px solid rgba(255,51,102,0.4);box-shadow:none;">停止</button>
+    </div>
+
+    <div class="hash-display">
+      <div style="font-size:12px;color:rgba(124,252,255,0.5);margin-bottom:6px;">最新哈希值 (SHA-256)</div>
+      <div class="hash-hex" id="hashDisplay">—</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item"><div class="num" id="triesCount">0</div><div class="lbl">尝试次数</div></div>
+      <div class="stat-item"><div class="num" id="hashRate">0</div><div class="lbl">哈希/秒</div></div>
+      <div class="stat-item"><div class="num" id="elapsed">0s</div><div class="lbl">已用时间</div></div>
+      <div class="stat-item"><div class="num" id="targetDisplay">4</div><div class="lbl">目标前导0</div></div>
+    </div>
+
+    <div class="found-box" id="foundBox">
+      <div class="msg">🎯 找到有效 Nonce！</div>
+      <div class="detail" id="foundDetail"></div>
+    </div>
+  </div>
+
+  <!-- 知识卡片 -->
+  <div class="info-card">
+    <h3>这与比特币挖矿有什么关系？</h3>
+    <p>比特币使用 SHA-256 作为工作量证明（Proof of Work）的核心。矿工不断改变 Nonce 值，对区块头计算哈希，直到结果小于当前难度目标（相当于前导零个数）。这个过程<strong>只能暴力尝试</strong>，平均尝试次数随难度指数增长。一旦找到，其他节点可以瞬间验证（只需一次哈希计算），这正是"验证容易、求解困难"的不对称性。</p>
+  </div>
+</main>
+
+<script>
+/* === 鼠标拖尾特效 === */
+(function() {
+  const C=['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const H='0123456789ABCDEFabcdef';
+  const s=document.createElement('style');
+  s.innerHTML='.trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;font-family:Consolas,Courier New,monospace;font-weight:700;animation:trail-float .9s ease-out forwards}@keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}';
+  document.head.appendChild(s);
+  let o=false;
+  document.addEventListener('mousemove',(e)=>{if(o)return;o=true;setTimeout(()=>{o=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=H[Math.floor(Math.random()*H.length)];
+      const c=C[Math.floor(Math.random()*C.length)],fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText='font-size:'+fs+'px;left:'+(e.clientX+ox)+'px;top:'+(e.clientY+oy)+'px;color:'+c+';text-shadow:0 0 6px '+c;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+  const s=document.createElement('style');
+  let o=false;
+
+let targetZeros = 4;
+let mining = false;
+let nonce = 0;
+let tries = 0;
+let startTime = 0;
+let rateSamples = [];
+let animId = null;
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    targetZeros = parseInt(btn.dataset.diff);
+    document.getElementById('targetDisplay').textContent = targetZeros;
+    resetStats();
+  });
+});
+
+function resetStats(){
+  document.getElementById('triesCount').textContent = '0';
+  document.getElementById('hashRate').textContent = '0';
+  document.getElementById('elapsed').textContent = '0s';
+  document.getElementById('hashDisplay').textContent = '—';
+  document.getElementById('foundBox').style.display = 'none';
+}
+
+async function sha256(msg){
+  const enc = new TextEncoder();
+  const data = enc.encode(msg);
+  const hashBuf = await crypto.subtle.digest('SHA-256', data);
+  const hashArr = Array.from(new Uint8Array(hashBuf));
+  return hashArr.map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function checkLeadingZeros(hex, n){
+  let zeros = 0;
+  for (const ch of hex) {
+    if (ch === '0') zeros++;
+    else break;
+  }
+  return zeros >= n;
+}
+
+async function mineOne(){
+  if (!mining) return;
+  const base = document.getElementById('baseMsg').value || 'Hello';
+  const msg = base + '|nonce=' + nonce;
+  const hash = await sha256(msg);
+  tries++;
+  nonce++;
+
+  document.getElementById('triesCount').textContent = tries.toLocaleString();
+
+  // 显示哈希
+  const display = document.getElementById('hashDisplay');
+  const targetHex = '0'.repeat(targetZeros);
+  if (checkLeadingZeros(hash, targetZeros)) {
+    display.innerHTML = '<span class="match">'+hash.slice(0,targetZeros)+'</span><span class="unmatch">'+hash.slice(targetZeros)+'</span>';
+    document.getElementById('foundBox').style.display = 'block';
+    document.getElementById('foundDetail').innerHTML =
+      'Nonce = <span style="color:#ffcc00;">'+(nonce-1)+'</span> &nbsp;|&nbsp; 消息 = "'+msg+'"<br>SHA-256 = '+hash;
+    mining = false;
+  } else {
+    display.innerHTML = '<span class="unmatch">'+hash+'</span>';
+  }
+
+  // 速率
+  const now = Date.now();
+  const elapsed = (now - startTime) / 1000;
+  document.getElementById('elapsed').textContent = elapsed.toFixed(1) + 's';
+  if (elapsed > 0) {
+    document.getElementById('hashRate').textContent = Math.round(tries / elapsed).toLocaleString();
+  }
+
+  if (mining && tries % 50 === 0) {
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  if (mining) {
+    animId = requestAnimationFrame(mineOne);
+  }
+}
+
+function startMining(){
+  if (mining) return;
+  mining = true;
+  tries = 0;
+  nonce = 0;
+  startTime = Date.now();
+  resetStats();
+  document.getElementById('foundBox').style.display = 'none';
+  mineOne();
+}
+
+function stopMining(){
+  mining = false;
+  if (animId) cancelAnimationFrame(animId);
+}
+</script>
+
+</body>
+</html>

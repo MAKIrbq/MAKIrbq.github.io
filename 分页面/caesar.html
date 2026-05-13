@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>凯撒密码破译 · 密码科普</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  background:#0b1218;
+  color:#baffff;
+  font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+#bg{
+  position:fixed;inset:0;z-index:0;
+  background:url('../背景图.png') center/cover no-repeat fixed;
+  filter:brightness(0.28);
+}
+#bg::after{
+  content:"";position:fixed;inset:0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,0,255,0.07), transparent 30%),
+    radial-gradient(circle at 80% 60%, rgba(0,255,255,0.06), transparent 35%),
+    linear-gradient(180deg, rgba(2,8,18,0.6) 0%, rgba(5,14,30,0.75) 100%);
+}
+
+main{
+  position:relative;z-index:2;
+  max-width:900px;margin:0 auto;padding:30px 20px 60px;
+}
+
+/* 返回链接 */
+.back-link{
+  display:inline-flex;align-items:center;gap:8px;
+  color:#7cfcff;text-decoration:none;font-size:14px;
+  letter-spacing:0.08em;margin-bottom:20px;
+  transition:color .2s;
+}
+.back-link:hover{color:#00ffff;}
+
+/* 头部 */
+header{
+  text-align:center;padding:30px 0 20px;
+}
+header h1{
+  font-size:clamp(28px,5vw,42px);
+  letter-spacing:0.1em;color:#00ffff;
+  text-shadow:0 0 36px rgba(0,255,255,0.5),0 0 72px rgba(0,255,255,0.15);
+  margin-bottom:8px;
+}
+header .subtitle{
+  font-size:15px;color:#7cfcff;letter-spacing:0.15em;opacity:0.75;
+}
+
+/* 模式切换 */
+.mode-tabs{
+  display:flex;justify-content:center;gap:4px;margin:30px 0;
+  flex-wrap:wrap;
+}
+.mode-tab{
+  padding:11px 26px;font-size:14px;
+  color:#7cfcff;background:rgba(0,255,255,0.06);
+  border:1px solid rgba(0,255,255,0.2);
+  border-radius:22px;cursor:pointer;
+  letter-spacing:0.06em;transition:all .25s;
+  user-select:none;
+}
+.mode-tab:hover{
+  border-color:rgba(0,255,255,0.5);
+  background:rgba(0,255,255,0.12);
+}
+.mode-tab.active{
+  color:#02060d;background:#34fff6;
+  border-color:#34fff6;
+  font-weight:700;
+  box-shadow:0 0 20px rgba(52,255,246,0.3);
+}
+
+/* 面板 */
+.panel{
+  background:rgba(2,10,24,0.72);
+  border:1px solid rgba(0,255,255,0.16);
+  border-radius:18px;padding:28px 30px;
+  backdrop-filter:blur(8px);
+  margin-bottom:24px;
+}
+
+/* 密码盘 */
+.wheel-container{
+  display:flex;justify-content:center;align-items:center;
+  margin:20px 0 30px;
+}
+canvas#cipherWheel{
+  display:block;
+}
+
+/* 位移滑块 */
+.slider-group{
+  display:flex;align-items:center;gap:16px;
+  flex-wrap:wrap;justify-content:center;margin:16px 0;
+}
+.slider-group label{
+  color:#7cfcff;font-size:14px;letter-spacing:0.06em;
+  white-space:nowrap;
+}
+.slider-group input[type=range]{
+  -webkit-appearance:none;width:200px;height:6px;
+  background:rgba(0,255,255,0.2);border-radius:3px;outline:none;
+}
+.slider-group input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:24px;height:24px;
+  background:#34fff6;border-radius:50%;
+  cursor:pointer;box-shadow:0 0 16px rgba(52,255,246,0.55);
+}
+#shiftVal{
+  display:inline-block;min-width:36px;text-align:center;
+  font-size:28px;font-weight:700;color:#34fff6;
+}
+
+/* 文本区 */
+.io-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+}
+@media(max-width:640px){.io-row{grid-template-columns:1fr;}}
+.io-col label{
+  display:block;font-size:13px;color:#7cfcff;
+  letter-spacing:0.08em;margin-bottom:8px;
+}
+.io-col textarea{
+  width:100%;height:120px;padding:14px;
+  font-size:16px;font-family:'Consolas','Courier New',monospace;
+  border-radius:12px;resize:vertical;
+  border:1px solid rgba(0,255,255,0.25);
+  background:rgba(255,255,255,0.04);color:#eff;
+  outline:none;line-height:1.7;
+}
+.io-col textarea:focus{
+  border-color:rgba(0,255,255,0.6);
+  box-shadow:0 0 16px rgba(0,255,255,0.08);
+}
+
+.btn-row{
+  display:flex;justify-content:center;gap:16px;margin-top:16px;
+  flex-wrap:wrap;
+}
+button{
+  padding:13px 30px;font-size:15px;
+  color:#02060d;background:#34fff6;
+  border:none;border-radius:13px;cursor:pointer;
+  font-weight:700;letter-spacing:0.04em;
+  box-shadow:0 0 22px rgba(52,255,246,0.25);
+  transition:all .2s;
+}
+button:hover{background:#5bffff;box-shadow:0 0 32px rgba(52,255,246,0.4);}
+button.secondary{
+  background:transparent;color:#34fff6;
+  border:1px solid rgba(52,255,246,0.4);
+  box-shadow:none;
+}
+button.secondary:hover{
+  background:rgba(52,255,246,0.1);
+  border-color:rgba(52,255,246,0.7);
+}
+
+/* 挑战模式 */
+#challengePanel{display:none;}
+.challenge-info{
+  text-align:center;margin-bottom:20px;
+}
+.challenge-info .cipher-display{
+  display:inline-block;padding:18px 30px;
+  font-size:24px;font-family:'Consolas','Courier New',monospace;
+  color:#ffcc00;letter-spacing:0.12em;
+  background:rgba(0,0,0,0.4);border-radius:12px;
+  border:1px solid rgba(255,204,0,0.3);
+  word-break:break-all;
+}
+.challenge-info .hint{
+  margin-top:12px;font-size:14px;color:#8abfc0;
+}
+#challengeResult{text-align:center;margin-top:12px;font-size:15px;}
+#scoreDisplay{text-align:center;font-size:16px;color:#ffcc00;margin-top:10px;}
+
+/* 知识卡片 */
+.info-card{
+  background:rgba(2,10,24,0.6);border:1px solid rgba(200,200,255,0.1);
+  border-radius:14px;padding:22px 24px;
+}
+.info-card h3{
+  color:#00ffff;font-size:18px;margin-bottom:10px;
+  letter-spacing:0.05em;
+}
+.info-card p{
+  color:#8abfc0;font-size:14px;line-height:1.9;
+}
+.info-card code{
+  background:rgba(0,255,255,0.12);color:#34fff6;
+  padding:2px 8px;border-radius:4px;font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<main>
+  <a class="back-link" href="../index.html">◂ 返回首页</a>
+
+  <header>
+    <h1>凯撒密码破译</h1>
+    <p class="subtitle">古 典 替 换 密 码 的 加 密 与 破 解</p>
+  </header>
+
+  <!-- 模式切换 -->
+  <div class="mode-tabs">
+    <div class="mode-tab active" data-mode="encrypt">🔒 加密模式</div>
+    <div class="mode-tab" data-mode="decrypt">🔓 解密模式</div>
+    <div class="mode-tab" data-mode="challenge">⚔️ 破译挑战</div>
+  </div>
+
+  <!-- 密码盘 -->
+  <div class="panel">
+    <div class="wheel-container">
+      <canvas id="cipherWheel" width="280" height="280"></canvas>
+    </div>
+    <div class="slider-group">
+      <label>位移量（密钥）</label>
+      <input type="range" id="shiftSlider" min="1" max="25" value="3">
+      <span id="shiftVal">3</span>
+    </div>
+  </div>
+
+  <!-- 加解密面板 -->
+  <div class="panel" id="encryptPanel">
+    <div class="io-row">
+      <div class="io-col">
+        <label>明文</label>
+        <textarea id="plainInput" placeholder="输入明文（字母），例如：HELLO"></textarea>
+      </div>
+      <div class="io-col">
+        <label>密文</label>
+        <textarea id="cipherOutput" placeholder="加密结果将显示在此" readonly></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button onclick="doEncrypt()">加密 ▸</button>
+      <button class="secondary" onclick="swapText()">交换文本</button>
+    </div>
+  </div>
+
+  <div class="panel" id="decryptPanel" style="display:none;">
+    <div class="io-row">
+      <div class="io-col">
+        <label>密文</label>
+        <textarea id="cipherInput" placeholder="输入密文，例如：KHOOR"></textarea>
+      </div>
+      <div class="io-col">
+        <label>明文</label>
+        <textarea id="plainOutput" placeholder="解密结果将显示在此" readonly></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button onclick="doDecrypt()">解密 ▸</button>
+      <button class="secondary" onclick="swapTextDecrypt()">交换文本</button>
+    </div>
+  </div>
+
+  <!-- 挑战面板 -->
+  <div class="panel" id="challengePanel">
+    <div class="challenge-info">
+      <div class="cipher-display" id="challengeCipher">—</div>
+      <p class="hint">上面是一段被凯撒密码加密的英文句子，请找出正确的位移量</p>
+    </div>
+    <div class="slider-group">
+      <label>猜测位移</label>
+      <input type="range" id="guessSlider" min="1" max="25" value="1">
+      <span id="guessVal" style="display:inline-block;min-width:36px;text-align:center;font-size:28px;font-weight:700;color:#ffcc00;">1</span>
+    </div>
+    <div style="text-align:center;margin:12px 0;">
+      <span style="color:#7cfcff;">解密预览：</span>
+      <span id="guessPreview" style="font-family:'Consolas',monospace;color:#eff;font-size:16px;"></span>
+    </div>
+    <div class="btn-row">
+      <button onclick="submitGuess()" style="background:#ffcc00;box-shadow:0 0 22px rgba(255,204,0,0.3);">提交答案</button>
+      <button class="secondary" onclick="newChallenge()">换一题</button>
+    </div>
+    <div id="challengeResult"></div>
+    <div id="scoreDisplay">得分：0</div>
+  </div>
+
+  <!-- 知识卡片 -->
+  <div class="info-card">
+    <h3>关于凯撒密码</h3>
+    <p>凯撒密码（Caesar Cipher）是最古老、最简单的加密方式之一，因古罗马时期的凯撒大帝使用而得名。</p>
+    <p><strong>原理：</strong>将字母表中的每个字母向后（或向前）移动固定位数。位移量就是<code>密钥 K</code>。例如 K=3 时，<code>A→D</code>、<code>B→E</code>、...、<code>Z→C</code>（循环移位）。</p>
+    <p><strong>密钥空间：</strong>只有 <code>25</code> 种可能（排除 K=0 即不移位），因此极易被暴力枚举破解。这也是凯撒密码在现代密码学中不再使用的原因。</p>
+    <p><strong>数学表达：</strong>E(x) = (x + K) mod 26 &nbsp;|&nbsp; D(x) = (x − K) mod 26</p>
+  </div>
+</main>
+
+<script>
+/* === 鼠标拖尾特效 === */
+(function() {
+  const C=['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const H='0123456789ABCDEFabcdef';
+  const s=document.createElement('style');
+  s.innerHTML='.trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;font-family:Consolas,Courier New,monospace;font-weight:700;animation:trail-float .9s ease-out forwards}@keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}';
+  document.head.appendChild(s);
+  let o=false;
+  document.addEventListener('mousemove',(e)=>{if(o)return;o=true;setTimeout(()=>{o=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=H[Math.floor(Math.random()*H.length)];
+      const c=C[Math.floor(Math.random()*C.length)],fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText='font-size:'+fs+'px;left:'+(e.clientX+ox)+'px;top:'+(e.clientY+oy)+'px;color:'+c+';text-shadow:0 0 6px '+c;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+  const s=document.createElement('style');
+  let o=false;
+
+const wheelCanvas = document.getElementById('cipherWheel');
+const wheelCtx = wheelCanvas.getContext('2d');
+const shiftSlider = document.getElementById('shiftSlider');
+const shiftVal = document.getElementById('shiftVal');
+
+const outerLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+let shift = 3;
+
+/* === 密码盘绘制 === */
+function drawWheel(s){
+  const w = wheelCanvas.width;
+  const h = wheelCanvas.height;
+  const cx = w/2, cy = h/2;
+  const outerR = 122, innerR = 82;
+
+  wheelCtx.clearRect(0, 0, w, h);
+
+  // 外圈 - 密文
+  wheelCtx.save();
+  wheelCtx.shadowColor = 'rgba(255,0,255,0.35)';
+  wheelCtx.shadowBlur = 12;
+  wheelCtx.strokeStyle = 'rgba(255,0,255,0.55)';
+  wheelCtx.lineWidth = 2.5;
+  wheelCtx.beginPath();
+  wheelCtx.arc(cx, cy, outerR, 0, Math.PI*2);
+  wheelCtx.stroke();
+  wheelCtx.shadowBlur = 0;
+  wheelCtx.fillStyle = 'rgba(255,0,255,0.06)';
+  wheelCtx.beginPath();
+  wheelCtx.arc(cx, cy, outerR, 0, Math.PI*2);
+  wheelCtx.fill();
+
+  // 外圈字母
+  for(let i=0;i<26;i++){
+    const angle = (i/26)*Math.PI*2 - Math.PI/2;
+    const lx = cx + Math.cos(angle)*(outerR-16);
+    const ly = cy + Math.sin(angle)*(outerR-16);
+    wheelCtx.fillStyle = '#ffaaff';
+    wheelCtx.font = 'bold 13px Consolas,monospace';
+    wheelCtx.textAlign = 'center';
+    wheelCtx.textBaseline = 'middle';
+    wheelCtx.fillText(outerLetters[i], lx, ly);
+    // 刻度线
+    wheelCtx.strokeStyle = 'rgba(255,0,255,0.3)';
+    wheelCtx.lineWidth = 1;
+    wheelCtx.beginPath();
+    wheelCtx.moveTo(cx+Math.cos(angle)*outerR, cy+Math.sin(angle)*outerR);
+    wheelCtx.lineTo(cx+Math.cos(angle)*(outerR-10), cy+Math.sin(angle)*(outerR-10));
+    wheelCtx.stroke();
+  }
+
+  // 内圈 - 明文
+  wheelCtx.save();
+  wheelCtx.shadowColor = 'rgba(0,255,255,0.4)';
+  wheelCtx.shadowBlur = 12;
+  wheelCtx.strokeStyle = 'rgba(0,255,255,0.6)';
+  wheelCtx.lineWidth = 2.5;
+  wheelCtx.beginPath();
+  wheelCtx.arc(cx, cy, innerR, 0, Math.PI*2);
+  wheelCtx.stroke();
+  wheelCtx.shadowBlur = 0;
+  wheelCtx.fillStyle = 'rgba(0,255,255,0.06)';
+  wheelCtx.beginPath();
+  wheelCtx.arc(cx, cy, innerR, 0, Math.PI*2);
+  wheelCtx.fill();
+
+  // 内圈字母 (旋转 s 格)
+  for(let i=0;i<26;i++){
+    const angle = (i/26)*Math.PI*2 - Math.PI/2 + (s/26)*Math.PI*2;
+    const lx = cx + Math.cos(angle)*(innerR-16);
+    const ly = cy + Math.sin(angle)*(innerR-16);
+    wheelCtx.fillStyle = '#7cfcff';
+    wheelCtx.font = 'bold 13px Consolas,monospace';
+    wheelCtx.textAlign = 'center';
+    wheelCtx.textBaseline = 'middle';
+    wheelCtx.fillText(outerLetters[i], lx, ly);
+  }
+  wheelCtx.restore();
+
+  // 中心文字
+  wheelCtx.fillStyle = '#ffcc00';
+  wheelCtx.font = 'bold 18px Arial';
+  wheelCtx.textAlign = 'center';
+  wheelCtx.textBaseline = 'middle';
+  wheelCtx.fillText('K='+s, cx, cy);
+
+  // 连线 (密钥偏移指示)
+  const idx0 = 0;
+  const a0 = (idx0/26)*Math.PI*2 - Math.PI/2;
+  const a1 = a0 + (s/26)*Math.PI*2;
+  const xOuter = cx + Math.cos(a0)*outerR;
+  const yOuter = cy + Math.sin(a0)*outerR;
+  const xInner = cx + Math.cos(a1)*innerR;
+  const yInner = cy + Math.sin(a1)*innerR;
+  wheelCtx.strokeStyle = 'rgba(255,204,0,0.7)';
+  wheelCtx.lineWidth = 2;
+  wheelCtx.setLineDash([4,3]);
+  wheelCtx.beginPath();
+  wheelCtx.moveTo(xOuter, yOuter);
+  wheelCtx.lineTo(xInner, yInner);
+  wheelCtx.stroke();
+  wheelCtx.setLineDash([]);
+}
+
+/* === 滑块事件 === */
+shiftSlider.addEventListener('input', ()=>{
+  shift = parseInt(shiftSlider.value);
+  shiftVal.textContent = shift;
+  drawWheel(shift);
+});
+drawWheel(shift);
+
+/* === 模式切换 === */
+const tabs = document.querySelectorAll('.mode-tab');
+tabs.forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    tabs.forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const mode = tab.dataset.mode;
+    document.getElementById('encryptPanel').style.display = mode==='encrypt'?'block':'none';
+    document.getElementById('decryptPanel').style.display = mode==='decrypt'?'block':'none';
+    document.getElementById('challengePanel').style.display = mode==='challenge'?'block':'none';
+  });
+});
+
+/* === 凯撒变换 === */
+function caesar(text, k){
+  let result = '';
+  for(const ch of text){
+    const upper = ch.toUpperCase();
+    if(upper>='A' && upper<='Z'){
+      const idx = upper.charCodeAt(0)-65;
+      const newIdx = ((idx+k)%26+26)%26;
+      const newChar = String.fromCharCode(newIdx+65);
+      result += ch===upper ? newChar : newChar.toLowerCase();
+    }else{
+      result += ch;
+    }
+  }
+  return result;
+}
+
+/* === 加密 === */
+function doEncrypt(){
+  const plain = document.getElementById('plainInput').value;
+  document.getElementById('cipherOutput').value = caesar(plain, shift);
+}
+
+/* === 解密 === */
+function doDecrypt(){
+  const cipher = document.getElementById('cipherInput').value;
+  document.getElementById('plainOutput').value = caesar(cipher, -shift);
+}
+
+/* === 交换文本 === */
+function swapText(){
+  const a=document.getElementById('plainInput');
+  const b=document.getElementById('cipherOutput');
+  if(!b.value)return;
+  const tmp=a.value;a.value=b.value;b.value=tmp;
+  doEncrypt();
+}
+function swapTextDecrypt(){
+  const a=document.getElementById('cipherInput');
+  const b=document.getElementById('plainOutput');
+  if(!b.value)return;
+  const tmp=a.value;a.value=b.value;b.value=tmp;
+  doDecrypt();
+}
+
+// 监听输入实时加解密
+document.getElementById('plainInput').addEventListener('input', doEncrypt);
+document.getElementById('cipherInput').addEventListener('input', doDecrypt);
+shiftSlider.addEventListener('input',()=>{
+  if(document.getElementById('encryptPanel').style.display!=='none')doEncrypt();
+  if(document.getElementById('decryptPanel').style.display!=='none')doDecrypt();
+});
+
+/* === 挑战模式 === */
+const challenges = [
+  {plain:"ZHI SHI JIU SHI LI LIANG", hint:"名言·培根"},
+  {plain:"HAO HAO XUE XI TIAN TIAN XIANG SHANG", hint:"校园标语"},
+  {plain:"YI YAN JI CHU SI MA NAN ZHUI", hint:"成语"},
+  {plain:"SHI JIE HE PING", hint:"美好愿望"},
+  {plain:"BU RU HU XUE YAN DE HU ZI", hint:"成语·冒险"},
+  {plain:"SAN SHI LIU JI ZOU WEI SHANG JI", hint:"兵法成语"},
+  {plain:"MI MA XUE HEN YOU QU", hint:"本网站主题"},
+  {plain:"YAN CHU BI XING", hint:"成语·诚信"},
+  {plain:"JIN TIAN XING QI WU", hint:"日常对话"},
+  {plain:"XUE XI SHI KUAI LE DE", hint:"学习心得"},
+];
+
+let currentChallenge = null;
+let challengeShift = 0;
+let score = 0;
+
+const guessSlider = document.getElementById('guessSlider');
+const guessVal = document.getElementById('guessVal');
+guessSlider.addEventListener('input',()=>{
+  guessVal.textContent = guessSlider.value;
+  updatePreview();
+});
+
+function updatePreview(){
+  if(!currentChallenge)return;
+  const gs = parseInt(guessSlider.value);
+  document.getElementById('guessPreview').textContent = caesar(currentChallenge, 26-gs);
+}
+
+function newChallenge(){
+  const idx = Math.floor(Math.random()*challenges.length);
+  const entry = challenges[idx];
+  challengeShift = Math.floor(Math.random()*25)+1;
+  currentChallenge = caesar(entry.plain, challengeShift);
+  document.getElementById('challengeCipher').textContent = currentChallenge;
+  document.querySelector('#challengePanel .hint').textContent = '提示：'+entry.hint;
+  guessSlider.value = 1;
+  guessVal.textContent = '1';
+  document.getElementById('challengeResult').innerHTML = '';
+  document.getElementById('guessPreview').textContent = caesar(currentChallenge, 25);
+}
+
+function submitGuess(){
+  if(!currentChallenge)return;
+  const gs = parseInt(guessSlider.value);
+  const resultEl = document.getElementById('challengeResult');
+  if(gs === challengeShift){
+    score++;
+    resultEl.innerHTML = '<span style="color:#00ffcc;font-size:20px;">✓ 正确！密钥就是 '+challengeShift+'</span>';
+    document.getElementById('scoreDisplay').textContent = '得分：'+score;
+    setTimeout(newChallenge, 1800);
+  }else{
+    resultEl.innerHTML = '<span style="color:#ff3366;">✗ 不对，再试试。提示：观察解密预览中的英文单词是否可读</span>';
+  }
+}
+
+newChallenge();
+
+/* === 键盘快捷键 === */
+window.addEventListener('keydown',(e)=>{
+  if(e.key==='ArrowLeft'){ shiftSlider.value=Math.max(1,shift-1); shiftSlider.dispatchEvent(new Event('input')); }
+  if(e.key==='ArrowRight'){ shiftSlider.value=Math.min(25,shift+1); shiftSlider.dispatchEvent(new Event('input')); }
+});
+</script>
+
+</body>
+</html>

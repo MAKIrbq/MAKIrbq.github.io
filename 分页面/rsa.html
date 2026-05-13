@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA 加密实验室 · 密码科普</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  background:#0b1218;
+  color:#baffff;
+  font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+#bg{
+  position:fixed;inset:0;z-index:0;
+  background:url('../背景图.png') center/cover no-repeat fixed;
+  filter:brightness(0.25);
+}
+#bg::after{
+  content:"";position:fixed;inset:0;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(0,255,255,0.06), transparent 30%),
+    radial-gradient(circle at 85% 50%, rgba(255,0,255,0.08), transparent 35%),
+    linear-gradient(180deg, rgba(2,8,18,0.55) 0%, rgba(5,14,30,0.7) 100%);
+}
+
+main{position:relative;z-index:2;max-width:960px;margin:0 auto;padding:30px 20px 60px;}
+
+.back-link{
+  display:inline-flex;align-items:center;gap:8px;
+  color:#7cfcff;text-decoration:none;font-size:14px;
+  letter-spacing:0.08em;margin-bottom:20px;
+  transition:color .2s;
+}
+.back-link:hover{color:#00ffff;}
+
+header{text-align:center;padding:30px 0 20px;}
+header h1{
+  font-size:clamp(28px,5vw,42px);
+  letter-spacing:0.1em;color:#00ffff;
+  text-shadow:0 0 36px rgba(0,255,255,0.5),0 0 72px rgba(0,255,255,0.15);
+  margin-bottom:8px;
+}
+header .subtitle{font-size:15px;color:#7cfcff;letter-spacing:0.15em;opacity:0.75;}
+
+/* 面板 */
+.panel{
+  background:rgba(2,10,24,0.72);
+  border:1px solid rgba(0,255,255,0.16);
+  border-radius:18px;padding:24px 28px;
+  backdrop-filter:blur(8px);margin-bottom:20px;
+}
+.panel h3{color:#00ffff;font-size:18px;margin:0 0 14px;letter-spacing:0.06em;}
+.panel h4{color:#7cfcff;font-size:14px;margin:16px 0 6px;letter-spacing:0.04em;}
+
+/* 双栏 */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:640px){.two-col{grid-template-columns:1fr;}}
+
+/* 质数选择 */
+.prime-select{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.prime-select label{color:#7cfcff;font-size:14px;}
+.prime-select select{
+  padding:8px 12px;font-size:14px;
+  background:rgba(255,255,255,0.05);color:#eff;
+  border:1px solid rgba(0,255,255,0.3);border-radius:8px;
+  outline:none;
+}
+.prime-select select:focus{border-color:rgba(0,255,255,0.6);}
+
+/* 密钥展示 */
+.key-box{
+  background:rgba(0,0,0,0.35);border-radius:10px;
+  padding:14px 18px;margin:8px 0;
+}
+.key-box .label{font-size:12px;color:#7cfcff;margin-bottom:4px;letter-spacing:0.06em;}
+.key-box .value{
+  font-family:'Consolas','Courier New',monospace;
+  font-size:18px;color:#ffcc00;word-break:break-all;
+}
+.key-box .value.small{font-size:14px;}
+
+/* 公式区 */
+.math-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:4px 0;font-family:'Consolas',monospace;font-size:14px;
+}
+.math-row .eq{color:#34fff6;}
+.math-row .val{color:#ffcc00;}
+.math-row .op{color:rgba(186,255,255,0.6);}
+
+/* 文本框 */
+textarea{
+  width:100%;height:80px;padding:12px;
+  font-size:15px;font-family:'Consolas','Courier New',monospace;
+  border-radius:10px;resize:vertical;
+  border:1px solid rgba(0,255,255,0.25);
+  background:rgba(255,255,255,0.04);color:#eff;
+  outline:none;line-height:1.7;
+}
+textarea:focus{
+  border-color:rgba(0,255,255,0.55);
+  box-shadow:0 0 14px rgba(0,255,255,0.06);
+}
+
+button{
+  padding:12px 26px;font-size:14px;
+  color:#02060d;background:#34fff6;
+  border:none;border-radius:12px;cursor:pointer;
+  font-weight:700;letter-spacing:0.04em;
+  box-shadow:0 0 20px rgba(52,255,246,0.22);
+  transition:all .2s;
+}
+button:hover{background:#5bffff;box-shadow:0 0 28px rgba(52,255,246,0.35);}
+button.secondary{
+  background:transparent;color:#34fff6;
+  border:1px solid rgba(52,255,246,0.4);box-shadow:none;
+}
+button.secondary:hover{
+  background:rgba(52,255,246,0.1);border-color:rgba(52,255,246,0.7);
+}
+.btn-row{display:flex;justify-content:center;gap:14px;margin-top:14px;flex-wrap:wrap;}
+
+/* 挑战模式 */
+#challengePanel{display:none;}
+.challenge-display{
+  text-align:center;padding:16px;
+  background:rgba(0,0,0,0.35);border-radius:10px;
+  font-family:'Consolas',monospace;
+}
+.challenge-display .big{font-size:20px;color:#ffcc00;}
+#challengeResult{text-align:center;margin-top:10px;font-size:15px;}
+
+/* 步骤区 */
+.step{
+  display:flex;align-items:flex-start;gap:10px;padding:6px 0;
+  font-size:13px;color:#8abfc0;line-height:1.7;
+}
+.step .step-num{
+  color:#34fff6;font-weight:700;min-width:22px;
+}
+
+/* 信息卡片 */
+.info-card{
+  background:rgba(2,10,24,0.6);border:1px solid rgba(200,200,255,0.1);
+  border-radius:14px;padding:22px 24px;margin-bottom:20px;
+}
+.info-card h3{color:#00ffff;font-size:18px;margin:0 0 10px;}
+.info-card p{color:#8abfc0;font-size:14px;line-height:1.9;margin:0 0 8px;}
+.info-card code{
+  background:rgba(0,255,255,0.12);color:#34fff6;
+  padding:2px 6px;border-radius:4px;font-size:13px;
+}
+
+/* 模式标签 */
+.mode-tabs{
+  display:flex;justify-content:center;gap:4px;margin-bottom:20px;flex-wrap:wrap;
+}
+.mode-tab{
+  padding:10px 22px;font-size:14px;
+  color:#7cfcff;background:rgba(0,255,255,0.06);
+  border:1px solid rgba(0,255,255,0.2);
+  border-radius:22px;cursor:pointer;
+  letter-spacing:0.06em;transition:all .25s;
+  user-select:none;
+}
+.mode-tab:hover{border-color:rgba(0,255,255,0.5);background:rgba(0,255,255,0.12);}
+.mode-tab.active{
+  color:#02060d;background:#34fff6;
+  border-color:#34fff6;font-weight:700;
+  box-shadow:0 0 18px rgba(52,255,246,0.3);
+}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<main>
+  <a class="back-link" href="../index.html">◂ 返回首页</a>
+
+  <header>
+    <h1>RSA 加密实验室</h1>
+    <p class="subtitle">非 对 称 加 密 的 数 学 之 美</p>
+  </header>
+
+  <!-- 模式切换 -->
+  <div class="mode-tabs">
+    <div class="mode-tab active" data-mode="lab">🔬 实验模式</div>
+    <div class="mode-tab" data-mode="challenge">⚔️ 破解挑战</div>
+  </div>
+
+  <!-- ===== 实验模式 ===== -->
+  <div id="labPanel">
+    <!-- 密钥生成 -->
+    <div class="panel">
+      <h3>第一步：生成密钥对</h3>
+      <div class="two-col">
+        <div>
+          <h4>选择两个质数</h4>
+          <div class="prime-select">
+            <label>p =</label>
+            <select id="selP"></select>
+            <label style="margin-left:10px;">q =</label>
+            <select id="selQ"></select>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="math-row"><span class="op">n = p × q =</span> <span class="val" id="showN">—</span></div>
+            <div class="math-row"><span class="op">φ(n) = (p-1)(q-1) =</span> <span class="val" id="showPhi">—</span></div>
+            <div class="math-row"><span class="op">选择 e（与 φ(n) 互质）=</span> <span class="val" id="showE">—</span></div>
+            <div class="math-row"><span class="op">d = e⁻¹ mod φ(n) =</span> <span class="val" id="showD">—</span></div>
+          </div>
+        </div>
+        <div>
+          <h4>密钥</h4>
+          <div class="key-box">
+            <div class="label">🔓 公钥 (n, e) — 用于加密，可公开</div>
+            <div class="value" id="pubKey">—</div>
+          </div>
+          <div class="key-box">
+            <div class="label">🔐 私钥 (n, d) — 用于解密，必须保密</div>
+            <div class="value" id="privKey">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加解密 -->
+    <div class="panel">
+      <h3>第二步：加密与解密</h3>
+      <div class="two-col">
+        <div>
+          <h4>加密（用公钥）</h4>
+          <textarea id="plainInput" placeholder="输入明文，例如：HELLO"></textarea>
+          <div class="btn-row">
+            <button onclick="doEncrypt()">加密 ▸</button>
+          </div>
+          <div class="math-row" style="margin-top:8px;">
+            <span class="op">公式：c = mᵉ mod n</span>
+          </div>
+          <div class="key-box" style="margin-top:8px;">
+            <div class="label">密文（每个字符独立加密）</div>
+            <div class="value small" id="cipherOutput"></div>
+          </div>
+        </div>
+        <div>
+          <h4>解密（用私钥）</h4>
+          <textarea id="cipherInput" placeholder="输入密文数字，逗号分隔"></textarea>
+          <div class="btn-row">
+            <button onclick="doDecrypt()">解密 ▸</button>
+          </div>
+          <div class="math-row" style="margin-top:8px;">
+            <span class="op">公式：m = cᵈ mod n</span>
+          </div>
+          <div class="key-box" style="margin-top:8px;">
+            <div class="label">解密结果</div>
+            <div class="value small" id="plainOutput"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加密过程详解 -->
+    <div class="panel">
+      <h3>第三步：加密过程详解</h3>
+      <div id="encryptSteps" style="min-height:40px;">
+        <div class="step"><span class="step-num">↑</span>输入明文后，此处展示每个字符的加密计算过程</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 挑战模式 ===== -->
+  <div id="challengePanel">
+    <div class="panel">
+      <h3>破解 RSA</h3>
+      <p style="color:#8abfc0;font-size:14px;line-height:1.8;margin-bottom:14px;">
+        给定公钥 (n, e) 和一段密文，你需要将 n 分解为两个质数 p × q，然后计算出私钥 d 来解密密文。
+        RSA 的安全性正是建立在<strong>大数质因数分解的困难性</strong>之上。
+      </p>
+      <div class="challenge-display">
+        <div style="margin-bottom:8px;color:#7cfcff;">公钥</div>
+        <div class="big">n = <span id="chalN">—</span></div>
+        <div style="color:#8abfc0;">e = <span id="chalE">—</span></div>
+        <div style="margin-top:12px;color:#7cfcff;">截获的密文</div>
+        <div class="big" id="chalCipher" style="font-size:16px;">—</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:14px;justify-content:center;flex-wrap:wrap;align-items:center;">
+        <label style="color:#7cfcff;font-size:14px;">p =</label>
+        <input type="number" id="guessP" placeholder="质因数1" style="width:100px;padding:8px 10px;font-size:14px;background:rgba(255,255,255,0.05);color:#eff;border:1px solid rgba(0,255,255,0.3);border-radius:8px;outline:none;">
+        <label style="color:#7cfcff;font-size:14px;">q =</label>
+        <input type="number" id="guessQ" placeholder="质因数2" style="width:100px;padding:8px 10px;font-size:14px;background:rgba(255,255,255,0.05);color:#eff;border:1px solid rgba(0,255,255,0.3);border-radius:8px;outline:none;">
+        <button onclick="submitCrack()" style="background:#ffcc00;box-shadow:0 0 20px rgba(255,204,0,0.25);">提交破解</button>
+        <button class="secondary" onclick="newChallenge()">换一题</button>
+      </div>
+      <div id="challengeResult"></div>
+      <div id="crackScore" style="text-align:center;margin-top:8px;font-size:14px;color:#ffcc00;">破解得分：0</div>
+    </div>
+  </div>
+
+  <!-- 知识卡片 -->
+  <div class="info-card">
+    <h3>关于 RSA</h3>
+    <p>RSA 由 Rivest、Shamir 和 Adleman 于 1977 年提出，是第一个实用的非对称加密算法，至今仍广泛用于 HTTPS、数字签名等场景。</p>
+    <p><strong>核心思想：</strong>基于一个简单的数学事实——将两个大质数相乘很容易，但对乘积进行质因数分解却极其困难。当 n 的位数达到 2048 位时，以现有计算能力破解需要数十亿年。</p>
+    <p><strong>密钥生成：</strong>选择大质数 p、q → 计算 n = p×q 和 φ(n) → 选 e 与 φ(n) 互质 → 计算 d = e⁻¹ mod φ(n)。<code>公钥 (n, e)</code> 公开，<code>私钥 (n, d)</code> 保密。</p>
+    <p><strong>安全性依赖于：</strong>只知道 n 无法高效求出 p 和 q，因此无法算出 φ(n)，也就无法从 e 推导出 d。</p>
+  </div>
+</main>
+
+<script>
+/* === 鼠标拖尾特效 === */
+(function() {
+  const C=['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const H='0123456789ABCDEFabcdef';
+  const s=document.createElement('style');
+  s.innerHTML='.trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;font-family:Consolas,Courier New,monospace;font-weight:700;animation:trail-float .9s ease-out forwards}@keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}';
+  document.head.appendChild(s);
+  let o=false;
+  document.addEventListener('mousemove',(e)=>{if(o)return;o=true;setTimeout(()=>{o=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=H[Math.floor(Math.random()*H.length)];
+      const c=C[Math.floor(Math.random()*C.length)],fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText='font-size:'+fs+'px;left:'+(e.clientX+ox)+'px;top:'+(e.clientY+oy)+'px;color:'+c+';text-shadow:0 0 6px '+c;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+  const s=document.createElement('style');
+  let o=false;
+
+/* ===== 质数列表 ===== */
+const primes = [3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113];
+
+/* ===== 初始化质数选择器 ===== */
+const selP = document.getElementById('selP');
+const selQ = document.getElementById('selQ');
+primes.forEach(v => {
+  selP.add(new Option(v, v));
+  selQ.add(new Option(v, v));
+});
+selP.value = '61';
+selQ.value = '53';
+
+/* ===== 大整数工具 ===== */
+function gcd(a, b) {
+  a = BigInt(a); b = BigInt(b);
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+function modPow(base, exp, mod) {
+  base = BigInt(base); exp = BigInt(exp); mod = BigInt(mod);
+  if (mod === 1n) return 0n;
+  let result = 1n;
+  base = base % mod;
+  while (exp > 0n) {
+    if (exp & 1n) result = (result * base) % mod;
+    exp >>= 1n;
+    base = (base * base) % mod;
+  }
+  return result;
+}
+
+function modInverse(a, m) {
+  a = BigInt(a); m = BigInt(m);
+  let [old_r, r] = [a, m];
+  let [old_s, s] = [1n, 0n];
+  while (r !== 0n) {
+    const q = old_r / r;
+    [old_r, r] = [r, old_r - q * r];
+    [old_s, s] = [s, old_s - q * s];
+  }
+  return ((old_s % m) + m) % m;
+}
+
+/* ===== 当前密钥 ===== */
+let curP, curQ, curN, curPhi, curE, curD;
+
+function updateKeys() {
+  curP = BigInt(selP.value);
+  curQ = BigInt(selQ.value);
+  if (curP === curQ) { curQ = BigInt(primes.find(v => v != Number(curP)) || 53); selQ.value = Number(curQ); }
+  curN = curP * curQ;
+  curPhi = (curP - 1n) * (curQ - 1n);
+
+  // 选一个与 φ(n) 互质的 e
+  const candidates = [3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n,41n,43n,47n,53n,59n,61n,67n,71n,73n,79n,83n,89n,97n,101n,103n,107n,109n,113n,127n,131n,137n,139n,149n,151n,157n,163n,167n,173n,179n,181n,191n,193n,197n,199n,211n,223n,227n,229n,233n,239n,241n,251n,257n];
+  curE = candidates.find(e => e < curPhi && gcd(e, curPhi) === 1n) || 65537n;
+  curD = modInverse(curE, curPhi);
+
+  document.getElementById('showN').textContent = curN.toString();
+  document.getElementById('showPhi').textContent = curPhi.toString();
+  document.getElementById('showE').textContent = curE.toString();
+  document.getElementById('showD').textContent = curD.toString();
+  document.getElementById('pubKey').textContent = `(${curN}, ${curE})`;
+  document.getElementById('privKey').textContent = `(${curN}, ${curD})`;
+
+  // 清空之前的加解密结果
+  document.getElementById('cipherOutput').textContent = '';
+  document.getElementById('plainOutput').textContent = '';
+  document.getElementById('encryptSteps').innerHTML = '<div class="step"><span class="step-num">↑</span>输入明文后，此处展示每个字符的加密计算过程</div>';
+}
+
+selP.addEventListener('change', updateKeys);
+selQ.addEventListener('change', updateKeys);
+updateKeys();
+
+/* ===== 加密 ===== */
+function doEncrypt() {
+  const plain = document.getElementById('plainInput').value;
+  if (!plain) return;
+
+  const results = [];
+  const steps = [];
+  for (const ch of plain) {
+    const m = BigInt(ch.charCodeAt(0));
+    if (m >= curN) {
+      steps.push(`<div class="step"><span class="step-num">⚠</span>'${ch}' (ASCII ${m}) ≥ n (${curN})，无法加密！请选择更大的质数。</div>`);
+      continue;
+    }
+    const c = modPow(m, curE, curN);
+    results.push(c.toString());
+    steps.push(`<div class="step"><span class="step-num">→</span>'${ch}' ASCII=<span class="val">${m}</span> → c = ${m}<sup>${curE}</sup> mod ${curN} = <span class="val">${c}</span></div>`);
+  }
+
+  document.getElementById('cipherOutput').textContent = results.join(', ');
+  document.getElementById('encryptSteps').innerHTML = steps.join('');
+  document.getElementById('cipherInput').value = results.join(', ');
+}
+
+/* ===== 解密 ===== */
+function doDecrypt() {
+  const input = document.getElementById('cipherInput').value.trim();
+  if (!input) return;
+  const parts = input.split(/[,\s]+/).filter(s => s !== '');
+  const results = [];
+  for (const part of parts) {
+    const c = BigInt(part);
+    const m = modPow(c, curD, curN);
+    results.push(String.fromCharCode(Number(m)));
+  }
+  document.getElementById('plainOutput').textContent = results.join('');
+}
+
+/* ===== 实时加密 ===== */
+document.getElementById('plainInput').addEventListener('input', doEncrypt);
+
+/* ===== 模式切换 ===== */
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const mode = tab.dataset.mode;
+    document.getElementById('labPanel').style.display = mode === 'lab' ? 'block' : 'none';
+    document.getElementById('challengePanel').style.display = mode === 'challenge' ? 'block' : 'none';
+  });
+});
+
+/* ===== 挑战模式 ===== */
+let crackScore = 0;
+let challengeData = null;
+
+const challengePrimes = [
+  [17, 23], [19, 29], [13, 31], [11, 37], [23, 41],
+  [17, 43], [29, 31], [19, 37], [13, 47], [11, 53],
+  [23, 29], [17, 41], [31, 37], [19, 43], [13, 59],
+];
+
+function newChallenge() {
+  const pair = challengePrimes[Math.floor(Math.random() * challengePrimes.length)];
+  const p = BigInt(pair[0]), q = BigInt(pair[1]);
+  const n = p * q, phi = (p - 1n) * (q - 1n);
+  const candidates = [3n,5n,7n,11n,13n,17n,19n,23n];
+  const e = candidates.find(e => e < phi && gcd(e, phi) === 1n) || 3n;
+  const d = modInverse(e, phi);
+
+  const words = ['HELLO','WORLD','RSA','CRACK','CIPHER','SECRET','MATH','CODE','KEY','OPEN'];
+  const word = words[Math.floor(Math.random() * words.length)];
+  const cipherNums = [];
+  for (const ch of word) {
+    const m = BigInt(ch.charCodeAt(0));
+    cipherNums.push(modPow(m, e, n).toString());
+  }
+
+  challengeData = { p, q, n, e, d, cipher: cipherNums.join(','), word, phi };
+  document.getElementById('chalN').textContent = n.toString();
+  document.getElementById('chalE').textContent = e.toString();
+  document.getElementById('chalCipher').textContent = cipherNums.join(', ');
+  document.getElementById('guessP').value = '';
+  document.getElementById('guessQ').value = '';
+  document.getElementById('challengeResult').innerHTML = '';
+}
+
+function submitCrack() {
+  if (!challengeData) return;
+  const gp = document.getElementById('guessP').value.trim();
+  const gq = document.getElementById('guessQ').value.trim();
+  const resultEl = document.getElementById('challengeResult');
+
+  if (!gp || !gq) {
+    resultEl.innerHTML = '<span style="color:#ff3366;">请输入 p 和 q</span>';
+    return;
+  }
+
+  const dp = BigInt(gp), dq = BigInt(gq);
+  if (dp * dq === challengeData.n && dp > 1n && dq > 1n) {
+    crackScore++;
+    document.getElementById('crackScore').textContent = '破解得分：' + crackScore;
+    const phi = (dp - 1n) * (dq - 1n);
+    const d = modInverse(challengeData.e, phi);
+
+    // 解密密文
+    const parts = challengeData.cipher.split(',');
+    const decrypted = parts.map(c => String.fromCharCode(Number(modPow(BigInt(c), d, challengeData.n)))).join('');
+
+    resultEl.innerHTML = `<span style="color:#00ffcc;font-size:18px;">✓ 破解成功！</span>
+      <div style="color:#8abfc0;margin-top:6px;">n = ${gp} × ${gq}，φ(n) = ${phi}，d = ${d}</div>
+      <div style="color:#ffcc00;margin-top:6px;">解密结果：<strong>${decrypted}</strong></div>`;
+    setTimeout(newChallenge, 3000);
+  } else {
+    resultEl.innerHTML = '<span style="color:#ff3366;">✗ p × q ≠ n，再试试。提示：从较小的质数开始试除。</span>';
+  }
+}
+
+newChallenge();
+
+/* ===== 键盘快捷操作 ===== */
+document.getElementById('cipherInput').addEventListener('input', doDecrypt);
+</script>
+
+</body>
+</html>

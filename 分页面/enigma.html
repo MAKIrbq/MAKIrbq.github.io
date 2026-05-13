@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恩尼格玛密码机 · 密码科普</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#0b1218;color:#baffff;
+  font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;
+  min-height:100vh;overflow-x:hidden;
+}
+#bg{
+  position:fixed;inset:0;z-index:0;
+  background:url('../背景图.png') center/cover no-repeat fixed;
+  filter:brightness(0.22);
+}
+#bg::after{content:"";position:fixed;inset:0;
+  background:radial-gradient(circle at 20% 25%,rgba(0,255,255,0.06),transparent 30%),
+  radial-gradient(circle at 80% 50%,rgba(255,0,255,0.07),transparent 35%),
+  linear-gradient(180deg,rgba(2,8,18,0.5),rgba(5,14,30,0.7));}
+
+main{position:relative;z-index:2;max-width:900px;margin:0 auto;padding:30px 20px 60px;}
+
+.back-link{display:inline-flex;align-items:center;gap:8px;color:#7cfcff;
+  text-decoration:none;font-size:14px;letter-spacing:0.08em;margin-bottom:20px;transition:color .2s;}
+.back-link:hover{color:#00ffff;}
+
+header{text-align:center;padding:20px 0 10px;}
+header h1{font-size:clamp(28px,5vw,38px);letter-spacing:0.08em;color:#00ffff;
+  text-shadow:0 0 36px rgba(0,255,255,0.5);margin-bottom:4px;}
+header .subtitle{font-size:14px;color:#7cfcff;letter-spacing:0.12em;opacity:0.7;}
+
+.panel{background:rgba(2,10,24,0.7);border:1px solid rgba(0,255,255,0.14);
+  border-radius:18px;padding:24px 28px;backdrop-filter:blur(8px);margin-bottom:20px;overflow:visible;}
+.panel.rotor-panel{padding-bottom:60px;margin-bottom:50px;min-height:300px;position:relative;z-index:5;}
+.panel h3{color:#00ffff;font-size:18px;margin:0 0 12px;letter-spacing:0.06em;}
+
+/* 转子 */
+.rotors-row{display:flex;justify-content:center;gap:24px;margin:16px 0;flex-wrap:wrap;}
+.rotor-box{position:relative;cursor:pointer;text-align:center;}
+.rotor-box .label{font-size:11px;color:rgba(124,252,255,0.6);margin-bottom:4px;letter-spacing:0.06em;}
+.rotor-window{
+  width:64px;height:64px;border-radius:12px;
+  background:rgba(0,0,0,0.5);border:2px solid rgba(0,255,255,0.35);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:700;color:#ffcc00;
+  box-shadow:0 0 18px rgba(0,255,255,0.1),inset 0 0 20px rgba(0,0,0,0.4);
+  transition:all .15s;
+}
+.rotor-window.tick{box-shadow:0 0 28px rgba(255,204,0,0.5),inset 0 0 20px rgba(0,0,0,0.4);}
+.rotor-ctrl{display:flex;gap:4px;margin-top:6px;justify-content:center;}
+.rotor-ctrl button{
+  width:28px;height:28px;font-size:14px;padding:0;
+  border-radius:6px;cursor:pointer;font-weight:700;
+  background:rgba(0,255,255,0.08);color:#7cfcff;
+  border:1px solid rgba(0,255,255,0.2);
+}
+.rotor-ctrl button:hover{background:rgba(0,255,255,0.2);}
+
+/* 转子详情浮层 */
+.rotor-detail{
+  display:none;position:absolute;top:100%;left:50%;
+  transform:translateX(-50%);z-index:30;
+  margin-top:8px;padding:14px 16px;
+  background:rgba(2,8,20,0.95);border:1px solid rgba(0,255,255,0.3);
+  border-radius:12px;white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,0.7);
+  backdrop-filter:blur(12px);
+}
+.rotor-box:hover .rotor-detail{display:block;}
+.rotor-detail .wire-title{font-size:12px;color:#7cfcff;margin-bottom:8px;letter-spacing:0.06em;text-align:center;}
+.rotor-detail .wire-row{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;max-width:300px;}
+.rotor-detail .wire-pair{font-family:'Consolas',monospace;font-size:12px;color:#8abfc0;white-space:nowrap;}
+.rotor-detail .wire-pair .from{color:rgba(186,255,255,0.5);}
+.rotor-detail .wire-pair .to{color:#ffcc00;}
+.rotor-detail .wire-hint{font-size:11px;color:rgba(124,252,255,0.4);margin-top:6px;text-align:center;}
+
+/* 插线板 */
+.plugboard-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;}
+.plug-pair{
+  font-family:'Consolas',monospace;font-size:14px;color:#ffcc00;
+  background:rgba(0,0,0,0.35);border:1px solid rgba(255,0,255,0.3);
+  border-radius:8px;padding:6px 12px;letter-spacing:0.06em;
+}
+
+/* 键盘 */
+.keyboard{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:16px 0;}
+.key{
+  width:48px;height:48px;border-radius:10px;
+  background:rgba(0,0,0,0.45);border:1px solid rgba(0,255,255,0.2);
+  color:#7cfcff;font-size:18px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .12s;user-select:none;
+}
+.key:hover{background:rgba(0,255,255,0.12);border-color:rgba(0,255,255,0.4);}
+.key.lit{background:#ffcc00;color:#02060d;border-color:#ffcc00;
+  box-shadow:0 0 24px rgba(255,204,0,0.6);}
+
+/* 灯板 */
+.lampboard{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:12px 0;}
+.lamp{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,204,0,0.2);
+  color:rgba(255,204,0,0.25);font-size:18px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;
+}
+.lamp.glow{background:rgba(255,204,0,0.2);color:#ffcc00;
+  border-color:rgba(255,204,0,0.6);box-shadow:0 0 20px rgba(255,204,0,0.4);}
+
+/* I/O */
+.io-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:12px 0;}
+@media(max-width:640px){.io-row{grid-template-columns:1fr;}}
+.io-row textarea{
+  width:100%;height:60px;padding:10px;font-size:14px;
+  font-family:'Consolas',monospace;resize:none;
+  border-radius:10px;background:rgba(255,255,255,0.04);color:#eff;
+  border:1px solid rgba(0,255,255,0.2);outline:none;
+}
+.io-row textarea:focus{border-color:rgba(0,255,255,0.5);}
+
+button{
+  padding:10px 22px;font-size:14px;color:#02060d;background:#34fff6;
+  border:none;border-radius:12px;cursor:pointer;font-weight:700;
+  box-shadow:0 0 18px rgba(52,255,246,0.2);transition:all .2s;
+}
+button:hover{background:#5bffff;}
+button.secondary{background:transparent;color:#34fff6;border:1px solid rgba(52,255,246,0.4);box-shadow:none;}
+button.secondary:hover{background:rgba(52,255,246,0.1);}
+.btn-row{display:flex;justify-content:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
+
+/* 信号通路（结构化表格） */
+#pathTable{
+  width:100%;margin:10px 0;border-collapse:collapse;
+  font-family:'Consolas','Courier New',monospace;font-size:12px;
+}
+#pathTable td{padding:5px 10px;vertical-align:middle;}
+#pathTable .step-num{color:rgba(124,252,255,0.4);text-align:right;width:24px;}
+#pathTable .step-label{color:rgba(124,252,255,0.7);width:100px;text-align:right;white-space:nowrap;}
+#pathTable .step-arrow{color:rgba(124,252,255,0.35);text-align:center;width:24px;}
+#pathTable .step-in{color:rgba(186,255,255,0.5);text-align:center;width:40px;}
+#pathTable .step-out{color:#ffcc00;text-align:center;width:40px;font-weight:700;}
+#pathTable .step-rule{color:rgba(186,255,255,0.35);font-size:11px;text-align:left;}
+#pathTable .step-start{color:#00ffcc;font-weight:700;}
+#pathTable .step-end{color:#ffcc00;font-weight:700;}
+#pathTable tr.highlight-row td{background:rgba(255,204,0,0.06);}
+
+/* 信息卡 */
+.info-card{background:rgba(2,10,24,0.55);border:1px solid rgba(200,200,255,0.08);
+  border-radius:14px;padding:20px 22px;margin-bottom:16px;}
+.info-card h3{color:#00ffff;font-size:17px;margin:0 0 8px;}
+.info-card p{color:#8abfc0;font-size:13px;line-height:1.9;}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<main>
+  <a class="back-link" href="../index.html">◂ 返回首页</a>
+  <header>
+    <h1>恩尼格玛密码机</h1>
+    <p class="subtitle">二 战 传 奇 加 密 机 器 的 原 理 体 验</p>
+  </header>
+
+  <!-- 转子 + 插线板 -->
+  <div class="panel rotor-panel">
+    <h3>转子设置 & 插线板</h3>
+    <div class="rotors-row" id="rotorsRow"></div>
+    <div style="text-align:center;margin-top:8px;color:rgba(124,252,255,0.5);font-size:11px;">
+      ▲▼ 调整初始位置 · 鼠标悬停转子查看接线表
+    </div>
+    <div style="text-align:center;margin-top:14px;">
+      <span style="color:rgba(124,252,255,0.7);font-size:13px;">🔌 插线板 (Steckerbrett) — 键盘输入前互换字母：</span>
+    </div>
+    <div class="plugboard-row" id="plugboardDisplay"></div>
+  </div>
+
+  <!-- 键盘 + 灯板 + 信号通路 -->
+  <div class="panel">
+    <h3>加密输入 & 信号通路</h3>
+    <div class="lampboard" id="lampboard"></div>
+    <div class="keyboard" id="keyboard"></div>
+    <div id="pathArea" style="min-height:20px;"></div>
+    <div class="io-row">
+      <textarea id="inputText" placeholder="输入明文" readonly></textarea>
+      <span style="color:rgba(124,252,255,0.5);font-size:13px;">→</span>
+      <textarea id="outputText" placeholder="加密结果" readonly></textarea>
+    </div>
+    <div class="btn-row">
+      <button onclick="resetEnigma()" class="secondary">重置转子</button>
+      <button onclick="clearText()" class="secondary">清空文本</button>
+    </div>
+  </div>
+
+  <!-- 知识卡片 -->
+  <div class="info-card">
+    <h3>恩尼格玛（Enigma）的秘密</h3>
+    <p>恩尼格玛是二战时期纳粹德国使用的加密机器。核心流程：<strong>插线板 → 转子III → 转子II → 转子I → 反射器 → 转子I → 转子II → 转子III → 插线板</strong>。反射器让电流原路返回，所以加解密使用相同设置（自反性）。每次按键转子步进，同一字母在消息中不同位置被加密成<strong>不同字母</strong>——这就是多表替换的力量。</p>
+    <p><strong>艾伦·图灵</strong>领导的布莱切利庄园团队通过模式分析成功破解了恩尼格玛，被认为将二战缩短了至少两年。</p>
+  </div>
+</main>
+
+<script>
+/* === 鼠标拖尾特效 === */
+(function() {
+  const C=['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const H='0123456789ABCDEFabcdef';
+  const s=document.createElement('style');
+  s.innerHTML='.trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;font-family:Consolas,Courier New,monospace;font-weight:700;animation:trail-float .9s ease-out forwards}@keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}';
+  document.head.appendChild(s);
+  let o=false;
+  document.addEventListener('mousemove',(e)=>{if(o)return;o=true;setTimeout(()=>{o=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=H[Math.floor(Math.random()*H.length)];
+      const c=C[Math.floor(Math.random()*C.length)],fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText='font-size:'+fs+'px;left:'+(e.clientX+ox)+'px;top:'+(e.clientY+oy)+'px;color:'+c+';text-shadow:0 0 6px '+c;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+  const s=document.createElement('style');
+  let o=false;
+
+const ROTOR_WIRINGS = {
+  I:  'EKMFLGDQVZNTOWYHXUSPAIBRCJ',
+  II: 'AJDKSIRUXBLHWTMCQGZNPYFVOE',
+  III:'BDFHJLCPRTXVZNYEIWGAKMUSQO'
+};
+const REFLECTOR_B = 'YRUHQSLDPXNGZOKMIEBFZCWVJAT';
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+let rotors = [
+  { name:'III', pos:0 },
+  { name:'II',  pos:0 },
+  { name:'I',   pos:0 }
+];
+
+// 插线板：字母对互换
+let plugboard = {};
+
+function initPlugboard(){
+  plugboard = {};
+  const pairs = [['A','J'],['B','Q'],['C','X'],['D','Y'],['E','Z']];
+  pairs.forEach(([a,b])=>{ plugboard[a]=b; plugboard[b]=a; });
+}
+initPlugboard();
+
+function applyPlugboard(n){
+  const ch = ALPHABET[n];
+  if (plugboard[ch]) return plugboard[ch].charCodeAt(0)-65;
+  return n;
+}
+
+function buildWiring(name){ return ROTOR_WIRINGS[name]; }
+
+function thruRotorFwd(wiring, pos, input){
+  const idx = ((input + pos) % 26 + 26) % 26;
+  return (wiring.charCodeAt(idx) - 65 - pos + 26) % 26;
+}
+function thruRotorRev(wiring, pos, input){
+  const shifted = ((input + pos) % 26 + 26) % 26;
+  return (wiring.indexOf(String.fromCharCode(shifted + 65)) - pos + 26) % 26;
+}
+
+function encryptLetter(ch){
+  let n = ch.toUpperCase().charCodeAt(0) - 65;
+  if (n < 0 || n > 25) return null;
+
+  // 步进转子
+  let carry = true;
+  for (let i = 2; i >= 0; i--) {
+    if (carry) {
+      rotors[i].pos = (rotors[i].pos + 1) % 26;
+      carry = (rotors[i].pos === 0);
+    }
+  }
+
+  // 记录每步：[标签, 输入字母, 输出字母, 接线规则描述]
+  const steps = [];
+
+  // 1. 插线板（进入）
+  const chIn = ALPHABET[n];
+  const pbIn = plugboard[chIn] || chIn;
+  const n1 = pbIn.charCodeAt(0)-65;
+  steps.push({label:'插线板(入)', from:chIn, to:pbIn,
+    rule: plugboard[chIn] ? `${chIn}↔${plugboard[chIn]}` : '直通'});
+
+  let cur = n1;
+
+  // 2. 正向转子 III → II → I
+  for (let i = 2; i >= 0; i--) {
+    const from = ALPHABET[cur];
+    const w = buildWiring(rotors[i].name);
+    cur = thruRotorFwd(w, rotors[i].pos, cur);
+    const to = ALPHABET[cur];
+    const pos = ALPHABET[rotors[i].pos];
+    const rawIn = ALPHABET[(ALPHABET.indexOf(from) + rotors[i].pos) % 26];
+    const rawOut = w[ALPHABET.indexOf(rawIn)];
+    steps.push({label:`转子${rotors[i].name}(正)`, from, to,
+      rule:`pos=${pos} ${from}→接触${rawIn}→线${rawOut}→${to}`});
+  }
+
+  // 3. 反射器
+  const fromRef = ALPHABET[cur];
+  cur = REFLECTOR_B.charCodeAt(cur) - 65;
+  const toRef = ALPHABET[cur];
+  steps.push({label:'反射器', from:fromRef, to:toRef,
+    rule:`${fromRef}→${REFLECTOR_B[ALPHABET.indexOf(fromRef)]}`});
+
+  // 4. 反向转子 I → II → III
+  for (let i = 0; i < 3; i++) {
+    const from = ALPHABET[cur];
+    const w = buildWiring(rotors[i].name);
+    cur = thruRotorRev(w, rotors[i].pos, cur);
+    const to = ALPHABET[cur];
+    const pos = ALPHABET[rotors[i].pos];
+    steps.push({label:`转子${rotors[i].name}(反)`, from, to,
+      rule:`pos=${pos} ${from}→${to}`});
+  }
+
+  // 5. 插线板（出去）
+  const pbOutBefore = ALPHABET[cur];
+  const pbOut = plugboard[pbOutBefore] || pbOutBefore;
+  const nOut = pbOut.charCodeAt(0)-65;
+  steps.push({label:'插线板(出)', from:pbOutBefore, to:pbOut,
+    rule: plugboard[pbOutBefore] ? `${pbOutBefore}↔${plugboard[pbOutBefore]}` : '直通'});
+
+  return { out: pbOut, steps };
+}
+
+// === UI ===
+
+function rotorWiringHTML(r){
+  const w = buildWiring(r.name);
+  let pairs = '';
+  for (let j=0;j<26;j++){
+    const from = ALPHABET[(j+r.pos)%26];
+    const toIdx = (w.charCodeAt(j)-65-r.pos+26)%26;
+    pairs += `<span class="wire-pair"><span class="from">${from}</span>→<span class="to">${ALPHABET[toIdx]}</span></span> `;
+  }
+  return pairs;
+}
+
+function buildRotorsUI(){
+  const row = document.getElementById('rotorsRow');
+  row.innerHTML = '';
+  rotors.forEach((r,i)=>{
+    const div = document.createElement('div');
+    div.className = 'rotor-box';
+    div.innerHTML = `
+      <div class="label">转子 ${r.name}</div>
+      <div class="rotor-window" id="rotorWin${i}">${ALPHABET[r.pos]}</div>
+      <div class="rotor-ctrl">
+        <button onclick="event.stopPropagation();adjRotor(${i},-1)">▲</button>
+        <button onclick="event.stopPropagation();adjRotor(${i},1)">▼</button>
+      </div>
+      <div class="rotor-detail">
+        <div class="wire-title">转子 ${r.name} 接线（当前位置）</div>
+        <div class="wire-row" id="rotorWires${i}">${rotorWiringHTML(r)}</div>
+        <div class="wire-hint">输入→输出 &nbsp;|&nbsp; 位置: <span style="color:#ffcc00;">${ALPHABET[r.pos]}</span></div>
+      </div>`;
+    row.appendChild(div);
+  });
+}
+
+function buildPlugboardUI(){
+  const el = document.getElementById('plugboardDisplay');
+  const pairs = [];
+  const seen = new Set();
+  for (const [a,b] of Object.entries(plugboard)){
+    if (seen.has(a)) continue;
+    seen.add(a); seen.add(b);
+    pairs.push(`${a}↔${b}`);
+  }
+  el.innerHTML = pairs.map(p =>
+    `<span class="plug-pair">${p}</span>`
+  ).join('');
+}
+
+function buildKeyboard(){
+  const kb = document.getElementById('keyboard');
+  const lb = document.getElementById('lampboard');
+  kb.innerHTML = ''; lb.innerHTML = '';
+  for (const ch of ALPHABET){
+    const key = document.createElement('div');
+    key.className = 'key'; key.textContent = ch; key.id = 'key'+ch;
+    key.addEventListener('click',()=>pressKey(ch));
+    kb.appendChild(key);
+    const lamp = document.createElement('div');
+    lamp.className = 'lamp'; lamp.textContent = ch; lamp.id = 'lamp'+ch;
+    lb.appendChild(lamp);
+  }
+}
+
+function adjRotor(i,delta){
+  rotors[i].pos = ((rotors[i].pos+delta)%26+26)%26;
+  updateRotorDisplays();
+  clearHighlights();
+}
+
+function updateRotorDisplays(){
+  rotors.forEach((r,i)=>{
+    const win = document.getElementById('rotorWin'+i);
+    if (win) win.textContent = ALPHABET[r.pos];
+    const wireEl = document.getElementById('rotorWires'+i);
+    if (wireEl) wireEl.innerHTML = rotorWiringHTML(r);
+  });
+}
+
+function clearHighlights(){
+  for (const ch of ALPHABET){
+    document.getElementById('key'+ch)?.classList.remove('lit');
+    document.getElementById('lamp'+ch)?.classList.remove('glow');
+  }
+  document.getElementById('pathArea').innerHTML = '';
+}
+
+function pressKey(ch){
+  clearHighlights();
+  document.getElementById('key'+ch)?.classList.add('lit');
+
+  const result = encryptLetter(ch);
+  if (!result) return;
+  document.getElementById('lamp'+result.out)?.classList.add('glow');
+
+  // 渲染结构化通路表
+  let html = '<table id="pathTable">';
+  html += `<tr><td class="step-num"></td><td class="step-label" style="color:#00ffcc;">输入</td><td class="step-arrow"></td><td class="step-start" colspan="2">${ch}</td><td class="step-rule"></td></tr>`;
+  result.steps.forEach((s,i)=>{
+    html += `<tr>`;
+    html += `<td class="step-num">${i+1}</td>`;
+    html += `<td class="step-label">${s.label}</td>`;
+    html += `<td class="step-arrow">→</td>`;
+    html += `<td class="step-in">${s.from}</td>`;
+    html += `<td class="step-out">${s.to}</td>`;
+    html += `<td class="step-rule">${s.rule}</td>`;
+    html += `</tr>`;
+  });
+  html += `<tr><td class="step-num"></td><td class="step-label" style="color:#ffcc00;">输出</td><td class="step-arrow"></td><td class="step-end" colspan="2">${result.out}</td><td class="step-rule"></td></tr>`;
+  html += '</table>';
+  document.getElementById('pathArea').innerHTML = html;
+
+  updateRotorDisplays();
+  rotors.forEach((_,i)=>{
+    const win = document.getElementById('rotorWin'+i);
+    win?.classList.add('tick');
+    setTimeout(()=>win?.classList.remove('tick'),150);
+  });
+
+  document.getElementById('inputText').value += ch;
+  document.getElementById('outputText').value += result.out;
+}
+
+function resetEnigma(){
+  rotors.forEach(r=>r.pos=0);
+  updateRotorDisplays();
+  clearHighlights();
+}
+
+function clearText(){
+  document.getElementById('inputText').value = '';
+  document.getElementById('outputText').value = '';
+  clearHighlights();
+}
+
+window.addEventListener('keydown',e=>{
+  const ch = e.key.toUpperCase();
+  if (ALPHABET.includes(ch) && e.target.tagName!=='TEXTAREA' && e.target.tagName!=='INPUT'){
+    pressKey(ch); e.preventDefault();
+  }
+});
+
+buildRotorsUI();
+buildPlugboardUI();
+buildKeyboard();
+</script>
+
+</body>
+</html>

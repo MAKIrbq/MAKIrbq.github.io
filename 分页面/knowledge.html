@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密码学基础知识 · 密码科普</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  background:#0b1218;
+  color:#baffff;
+  font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+#bg{
+  position:fixed;inset:0;z-index:0;
+  background:url('../背景图.png') center/cover no-repeat fixed;
+  filter:brightness(0.22);
+}
+#bg::after{
+  content:"";position:fixed;inset:0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(0,255,255,0.05), transparent 30%),
+    radial-gradient(circle at 85% 50%, rgba(255,0,255,0.06), transparent 35%),
+    linear-gradient(180deg, rgba(2,8,18,0.5) 0%, rgba(5,14,30,0.7) 100%);
+}
+
+main{position:relative;z-index:2;max-width:900px;margin:0 auto;padding:30px 20px 80px;}
+
+.back-link{
+  display:inline-flex;align-items:center;gap:8px;
+  color:#7cfcff;text-decoration:none;font-size:14px;
+  letter-spacing:0.08em;margin-bottom:20px;
+  transition:color .2s;
+}
+.back-link:hover{color:#00ffff;}
+
+header{text-align:center;padding:30px 0 10px;}
+header h1{
+  font-size:clamp(28px,5vw,40px);
+  letter-spacing:0.1em;color:#00ffff;
+  text-shadow:0 0 36px rgba(0,255,255,0.5),0 0 72px rgba(0,255,255,0.15);
+  margin-bottom:6px;
+}
+
+/* 导航 */
+#toc{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  margin:24px 0 30px;
+}
+#toc a{
+  padding:8px 18px;font-size:13px;
+  color:#7cfcff;text-decoration:none;
+  background:rgba(0,255,255,0.05);
+  border:1px solid rgba(0,255,255,0.18);
+  border-radius:20px;transition:all .2s;
+  letter-spacing:0.04em;
+}
+#toc a:hover{
+  border-color:rgba(0,255,255,0.5);
+  background:rgba(0,255,255,0.12);
+}
+
+/* 章节 */
+.section{
+  background:rgba(2,10,24,0.7);
+  border:1px solid rgba(0,255,255,0.14);
+  border-radius:18px;padding:30px 32px;
+  backdrop-filter:blur(8px);margin-bottom:24px;
+}
+.section h2{
+  color:#00ffff;font-size:22px;margin:0 0 6px;
+  letter-spacing:0.06em;display:flex;align-items:center;gap:10px;
+}
+.section h2 .icon{font-size:26px;}
+.section .en-name{
+  font-size:13px;color:rgba(124,252,255,0.5);
+  letter-spacing:0.1em;margin-bottom:16px;
+}
+.section h3{
+  color:#7cfcff;font-size:16px;margin:22px 0 8px;
+  letter-spacing:0.04em;
+}
+.section p{
+  color:#8abfc0;font-size:14px;line-height:2;margin:0 0 10px;
+}
+.section ul{
+  margin:8px 0 12px 20px;color:#8abfc0;font-size:14px;line-height:2;
+}
+.section ul li{margin-bottom:2px;}
+.section code{
+  background:rgba(0,255,255,0.1);color:#34fff6;
+  padding:2px 7px;border-radius:4px;font-size:13px;
+}
+.section strong{color:#cffcff;}
+
+/* 信息框 */
+.info-box{
+  background:rgba(0,0,0,0.3);
+  border-left:3px solid rgba(52,255,246,0.45);
+  padding:14px 18px;border-radius:0 8px 8px 0;
+  margin:14px 0;font-size:13px;color:#b0d8d8;line-height:1.9;
+}
+.info-box.warn{
+  border-left-color:rgba(255,204,0,0.5);
+}
+.info-box.danger{
+  border-left-color:rgba(255,51,102,0.5);
+}
+
+/* 对比表 */
+.compare-table{
+  width:100%;border-collapse:collapse;margin:14px 0;
+  font-size:13px;
+}
+.compare-table th{
+  text-align:left;padding:10px 14px;
+  background:rgba(0,255,255,0.08);color:#7cfcff;
+  border-bottom:1px solid rgba(0,255,255,0.15);
+  font-weight:600;letter-spacing:0.04em;
+}
+.compare-table td{
+  padding:10px 14px;color:#8abfc0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  line-height:1.7;
+}
+.compare-table tr:hover td{background:rgba(0,255,255,0.03);}
+
+/* 数学公式 */
+.formula{
+  display:inline-block;padding:8px 16px;
+  background:rgba(0,0,0,0.35);border-radius:8px;
+  font-family:'Consolas','Courier New',monospace;
+  font-size:14px;color:#ffcc00;letter-spacing:0.06em;
+  margin:4px 0;
+}
+
+/* 页脚 */
+footer{
+  position:relative;z-index:2;text-align:center;
+  padding:20px;color:#3d5a5c;font-size:13px;
+  letter-spacing:0.1em;
+}
+
+@media(max-width:640px){
+  .section{padding:20px 18px;}
+  .compare-table{font-size:11px;}
+  .compare-table th,.compare-table td{padding:6px 8px;}
+}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<main>
+  <a class="back-link" href="../index.html">◂ 返回首页</a>
+
+  <header>
+    <h1>密码学基础知识</h1>
+  </header>
+
+  <nav id="toc">
+    <a href="#symmetric">对称加密</a>
+    <a href="#asymmetric">非对称加密</a>
+    <a href="#hash">哈希函数</a>
+    <a href="#zkp">零知识证明</a>
+    <a href="#signature">数字签名</a>
+    <a href="#blockchain">区块链密码学</a>
+  </nav>
+
+  <!-- ===== 对称加密 ===== -->
+  <div class="section" id="symmetric">
+    <h2><span class="icon">🔒</span>对称加密</h2>
+    <div class="en-name">Symmetric Encryption</div>
+    <p>对称加密是最古老、最直观的加密方式。<strong>加密和解密使用同一个密钥</strong>，就像一把钥匙既能锁门又能开门。发送方用密钥将明文加密为密文，接收方用<strong>同一把密钥</strong>将密文解密还原为明文。</p>
+
+    <h3>工作原理</h3>
+    <p>发送方和接收方必须事先通过安全渠道共享密钥。加密算法接受明文和密钥作为输入，输出密文；解密算法接受密文和同一密钥，输出明文。安全性完全依赖于密钥的保密——如果密钥泄露，所有通信内容都会被破解。</p>
+
+    <h3>常见算法</h3>
+    <table class="compare-table">
+      <tr><th>算法</th><th>密钥长度</th><th>分组大小</th><th>特点</th></tr>
+      <tr><td>DES</td><td>56 位</td><td>64 位</td><td>1977 年标准，现已不安全（密钥太短，可暴力破解）</td></tr>
+      <tr><td>3DES</td><td>112/168 位</td><td>64 位</td><td>DES 的增强版，三次加密，但速度慢</td></tr>
+      <tr><td>AES</td><td>128/192/256 位</td><td>128 位</td><td>当前最广泛使用的对称加密标准，安全高效</td></tr>
+      <tr><td>SM4</td><td>128 位</td><td>128 位</td><td>中国国家密码标准，用于无线局域网等领域</td></tr>
+      <tr><td>ChaCha20</td><td>256 位</td><td>流密码</td><td>现代流密码，速度快，用于 TLS 1.3 等协议</td></tr>
+    </table>
+
+    <h3>工作模式</h3>
+    <p>分组密码本身只能加密固定大小的数据块。为了加密任意长度的消息，需要结合工作模式：</p>
+    <ul>
+      <li><strong>ECB（电子密码本）：</strong>每个块独立加密，相同明文块产生相同密文块，不安全</li>
+      <li><strong>CBC（密文分组链接）：</strong>每个明文块先与前一个密文块异或，再加密，需要初始向量 IV</li>
+      <li><strong>CTR（计数器模式）：</strong>将分组密码转为流密码，支持并行处理</li>
+      <li><strong>GCM（Galois/计数器模式）：</strong>在 CTR 基础上增加认证功能，同时保证机密性和完整性</li>
+    </ul>
+
+    <div class="info-box">
+      <strong>优点：</strong>加解密速度快（比非对称加密快 100-1000 倍），适合大量数据加密。<br>
+      <strong>缺点：</strong>密钥分发困难——双方必须事先安全共享密钥。N 个人通信需要 N(N-1)/2 个密钥。
+    </div>
+
+    <h3>数学表示</h3>
+    <span class="formula">E(K, M) = C &nbsp;&nbsp;|&nbsp;&nbsp; D(K, C) = M</span>
+    <p style="margin-top:8px;">其中 K 为密钥，M 为明文，C 为密文，加密函数 E 和解密函数 D 满足 D(K, E(K, M)) = M。</p>
+  </div>
+
+  <!-- ===== 非对称加密 ===== -->
+  <div class="section" id="asymmetric">
+    <h2><span class="icon">🔓</span>非对称加密</h2>
+    <div class="en-name">Asymmetric Encryption / Public-Key Cryptography</div>
+    <p>非对称加密使用<strong>一对数学上关联但不相同的密钥</strong>：公钥（public key）和私钥（private key）。公钥可以公开分发，私钥必须保密。<strong>公钥加密的内容只有对应私钥能解密，反之亦然。</strong></p>
+
+    <h3>核心思想</h3>
+    <p>类比：一个带锁的信箱。任何人都可以通过投信口（公钥）把信放进信箱（加密），但只有持有钥匙的人（私钥）能打开信箱取出信件（解密）。这完美解决了对称加密中"密钥分发"的痛点。</p>
+
+    <h3>主要算法</h3>
+    <table class="compare-table">
+      <tr><th>算法</th><th>数学基础</th><th>典型密钥长度</th><th>特点</th></tr>
+      <tr><td>RSA</td><td>大整数分解</td><td>2048-4096 位</td><td>历史最悠久，应用最广，加解密较慢</td></tr>
+      <tr><td>ECC / ECDSA</td><td>椭圆曲线离散对数</td><td>256-384 位</td><td>密钥更短、速度更快，移动端首选</td></tr>
+      <tr><td>SM2</td><td>椭圆曲线（自定义曲线）</td><td>256 位</td><td>中国国家密码标准，用于金融等领域</td></tr>
+      <tr><td>ElGamal</td><td>离散对数</td><td>2048+ 位</td><td>基于 Diffie-Hellman 扩展，支持同态性质</td></tr>
+      <tr><td>Lattice-based</td><td>格问题</td><td>变化</td><td>后量子密码候选，抗量子计算攻击</td></tr>
+    </table>
+
+    <h3>RSA 算法流程</h3>
+    <ol style="color:#8abfc0;font-size:14px;line-height:2.2;margin-left:20px;">
+      <li>随机选择两个大质数 <code>p</code> 和 <code>q</code></li>
+      <li>计算 <code>n = p × q</code>，计算欧拉函数 <code>φ(n) = (p-1)(q-1)</code></li>
+      <li>选择 <code>e</code> 使得 <code>1 < e < φ(n)</code> 且 <code>gcd(e, φ(n)) = 1</code></li>
+      <li>计算 <code>d = e⁻¹ mod φ(n)</code>（模逆元）</li>
+      <li><strong>公钥 = (n, e)，私钥 = (n, d)</strong></li>
+      <li>加密：<code>c = mᵉ mod n</code> &nbsp;|&nbsp; 解密：<code>m = cᵈ mod n</code></li>
+    </ol>
+
+    <div class="info-box">
+      <strong>应用场景：</strong>HTTPS/TLS 握手交换对称密钥、电子邮件加密（PGP）、数字货币钱包、SSH 远程登录认证。
+    </div>
+  </div>
+
+  <!-- ===== 哈希函数 ===== -->
+  <div class="section" id="hash">
+    <h2><span class="icon">🧩</span>哈希函数</h2>
+    <div class="en-name">Hash Function</div>
+    <p>哈希函数将<strong>任意长度的输入</strong>映射为<strong>固定长度的输出</strong>（哈希值/摘要）。这个输出就像数据的"指纹"——即使输入只改变一个比特，输出也会完全不同（雪崩效应）。</p>
+
+    <h3>密码学哈希的三个核心特性</h3>
+    <ul>
+      <li><strong>抗原像性（单向性）：</strong>给定哈希值 h，在计算上不可能找到 x 使得 hash(x) = h。即"不可逆推"。</li>
+      <li><strong>抗第二原像性：</strong>给定 x₁，在计算上不可能找到不同的 x₂ 使得 hash(x₁) = hash(x₂)。</li>
+      <li><strong>抗碰撞性：</strong>在计算上不可能找到任意两个不同的输入 x₁ ≠ x₂ 使得 hash(x₁) = hash(x₂)。</li>
+    </ul>
+
+    <h3>常见算法</h3>
+    <table class="compare-table">
+      <tr><th>算法</th><th>输出长度</th><th>状态</th></tr>
+      <tr><td>MD5</td><td>128 位</td><td>已破解，存在碰撞攻击，不应再使用</td></tr>
+      <tr><td>SHA-1</td><td>160 位</td><td>已破解，Google 在 2017 年实现了首次碰撞攻击</td></tr>
+      <tr><td>SHA-256</td><td>256 位</td><td>当前最广泛使用的安全哈希，比特币核心算法</td></tr>
+      <tr><td>SHA-3 (Keccak)</td><td>可变</td><td>新一代标准，与 SHA-2 结构完全不同</td></tr>
+      <tr><td>SM3</td><td>256 位</td><td>中国国家密码标准，用于数字签名和验证</td></tr>
+      <tr><td>BLAKE3</td><td>256 位</td><td>现代高性能哈希，比 SHA-256 快数倍</td></tr>
+    </table>
+
+    <h3>实际应用</h3>
+    <ul>
+      <li><strong>密码存储：</strong>网站不存储明文密码，而是存储 hash(password + salt)。登录时比对哈希值，即使数据库泄露也不会暴露原始密码。</li>
+      <li><strong>文件完整性校验：</strong>下载文件时提供 SHA-256 校验和，确保文件在传输过程中未被篡改。</li>
+      <li><strong>区块链：</strong>每个区块包含前一个区块的哈希，形成不可篡改的链。比特币挖矿本质上是在寻找满足特定条件的哈希值（工作量证明）。</li>
+      <li><strong>数字签名：</strong>先对消息取哈希，再对哈希值签名（而非对整个消息签名），大幅提高效率。</li>
+    </ul>
+
+    <div class="info-box">
+      <strong>加盐（Salt）：</strong>为每个用户的密码附加一个随机值再进行哈希。即使两个用户密码相同，加入不同盐后哈希值也完全不同，有效防御彩虹表攻击。
+    </div>
+  </div>
+
+  <!-- ===== 零知识证明 ===== -->
+  <div class="section" id="zkp">
+    <h2><span class="icon">🎭</span>零知识证明</h2>
+    <div class="en-name">Zero-Knowledge Proof (ZKP)</div>
+    <p>零知识证明是一种协议，允许一方（<strong>证明者 Prover</strong>）向另一方（<strong>验证者 Verifier</strong>）证明自己知道某个秘密，而<strong>不透露秘密本身的一丁点信息</strong>。验证者最终只确信"证明者确实知道这个秘密"，而对秘密内容一无所知。</p>
+
+    <h3>三个基本性质</h3>
+    <ul>
+      <li><strong>完整性（Completeness）：</strong>如果证明者真的知道秘密，验证者一定会被说服。</li>
+      <li><strong>可靠性（Soundness）：</strong>如果证明者不知道秘密，他几乎不可能欺骗验证者（欺骗概率可随重复次数指数级下降）。</li>
+      <li><strong>零知识性（Zero-Knowledge）：</strong>验证者除了"证明者知道秘密"这一事实外，学不到任何关于秘密本身的信息。</li>
+    </ul>
+
+    <h3>经典例子：阿里巴巴的山洞</h3>
+    <p>阿里巴巴知道山洞暗门的咒语。他想向 Victor 证明自己知道咒语，但不透露咒语内容。山洞有出口 A 和 B，中间暗门需要咒语打开。</p>
+    <p>流程：Victor 在洞外等待 → 阿里巴巴从 A 或 B 任意进入 → Victor 随机要求他从 A 或 B 出来 → 如果阿里巴巴知道咒语，总能在必要时穿过暗门从正确出口出来 → 如果不知道，只有 50% 蒙对概率。重复 20 轮后骗子成功率低于百万分之一。</p>
+
+    <h3>主要类型</h3>
+    <table class="compare-table">
+      <tr><th>类型</th><th>特点</th><th>代表系统</th></tr>
+      <tr><td>交互式 ZKP</td><td>证明者和验证者需要多轮交互</td><td>经典图同构证明</td></tr>
+      <tr><td>非交互式 ZKP (NIZK)</td><td>证明者只生成一个证明，验证者可独立验证</td><td>zk-SNARKs</td></tr>
+      <tr><td>zk-SNARKs</td><td>证明短小、验证快、需可信设置</td><td>Zcash、zkSync</td></tr>
+      <tr><td>zk-STARKs</td><td>无需可信设置、抗量子、证明较大</td><td>StarkNet、StarkEx</td></tr>
+      <tr><td>Bulletproofs</td><td>无需可信设置、适合范围证明</td><td>Monero</td></tr>
+    </table>
+
+    <div class="info-box">
+      <strong>应用前景：</strong>区块链隐私交易（隐藏金额和地址）、身份验证（证明成年而不透露生日）、合规审计（证明资产充足而不公开账户）、可验证计算（外包计算并验证结果正确性）。
+    </div>
+  </div>
+
+  <!-- ===== 数字签名 ===== -->
+  <div class="section" id="signature">
+    <h2><span class="icon">✍️</span>数字签名</h2>
+    <div class="en-name">Digital Signature</div>
+    <p>数字签名是非对称加密的"逆向"应用——用<strong>私钥签名</strong>，用<strong>公钥验证</strong>。它提供三个核心保证：<strong>真实性</strong>（来源可信）、<strong>完整性</strong>（内容未被篡改）、<strong>不可否认性</strong>（签名者无法抵赖）。</p>
+
+    <h3>签名与验证流程</h3>
+    <p><strong>签名：</strong>发送方对消息计算哈希 → 用私钥对哈希值加密 → 生成签名 → 将消息和签名一起发送。<br>
+    <strong>验证：</strong>接收方对消息重新计算哈希 → 用发送方公钥解密签名 → 比对两个哈希值。一致则验证通过。</p>
+    <span class="formula">Sign(M, sk) = σ &nbsp;&nbsp;|&nbsp;&nbsp; Verify(M, σ, pk) = True/False</span>
+
+    <h3>常见算法</h3>
+    <table class="compare-table">
+      <tr><th>算法</th><th>数学基础</th><th>应用</th></tr>
+      <tr><td>RSA-PSS</td><td>大整数分解</td><td>TLS 证书、旧版 DNSSEC</td></tr>
+      <tr><td>ECDSA</td><td>椭圆曲线</td><td>比特币、以太坊交易签名</td></tr>
+      <tr><td>Ed25519 (EdDSA)</td><td>扭曲爱德华曲线</td><td>SSH 密钥、现代 TLS、Solana</td></tr>
+      <tr><td>SM2-Sign</td><td>椭圆曲线（自定义曲线）</td><td>中国金融 IC 卡、电子认证</td></tr>
+      <tr><td>Schnorr</td><td>离散对数</td><td>比特币 Taproot 升级</td></tr>
+    </table>
+
+    <div class="info-box warn">
+      <strong>签名 ≠ 加密：</strong>虽然都使用公私钥对，但方向相反。加密是用公钥加密、私钥解密；签名是用私钥签名、公钥验证。两者可以结合使用：先签名再加密，同时保证机密性和认证性。
+    </div>
+  </div>
+
+  <!-- ===== 区块链密码学 ===== -->
+  <div class="section" id="blockchain">
+    <h2><span class="icon">🔗</span>区块链中的密码学</h2>
+    <div class="en-name">Cryptography in Blockchain</div>
+    <p>区块链并不是"一种"密码学技术，而是<strong>多种密码学工具的系统性组合</strong>。理解区块链，就是理解这些密码学组件如何协同工作。</p>
+
+    <h3>密码学组件在区块链中的角色</h3>
+    <table class="compare-table">
+      <tr><th>组件</th><th>在区块链中的作用</th></tr>
+      <tr><td>哈希函数 (SHA-256)</td><td>区块链接（每个区块含前一区块哈希）；工作量证明挖矿；默克尔树构建交易摘要；地址生成</td></tr>
+      <tr><td>数字签名 (ECDSA)</td><td>交易签名与验证——只有私钥持有者才能花费对应地址的资产</td></tr>
+      <tr><td>公钥密码学</td><td>地址派生：公钥 → 哈希 → 编码 → 地址。拥有私钥即拥有资产控制权</td></tr>
+      <tr><td>默克尔树 (Merkle Tree)</td><td>高效验证某笔交易是否包含在区块中（SPV 轻节点验证），无需下载完整区块</td></tr>
+      <tr><td>零知识证明</td><td>隐私链（Zcash）隐藏交易金额和地址；Layer2 扩容（zk-Rollup）压缩验证数据</td></tr>
+    </table>
+
+    <h3>比特币交易验证流程</h3>
+    <ol style="color:#8abfc0;font-size:14px;line-height:2.2;margin-left:20px;">
+      <li>Alice 创建交易：指定输入（之前收到的 UTXO）、输出（Bob 地址 + 金额）、找零</li>
+      <li>Alice 用她的私钥对交易进行<strong>数字签名</strong>，证明她有权花费这些 UTXO</li>
+      <li>交易广播到网络，节点验证签名和输入有效性</li>
+      <li>矿工将有效交易打包进候选区块，开始<strong>工作量证明</strong>（不断尝试 nonce 使区块哈希满足难度目标）</li>
+      <li>矿工找到有效 nonce → 广播区块 → 其他节点验证 → 加入区块链</li>
+      <li>后续区块在该区块之上构建，提供<strong>确认数</strong>保障不可逆性</li>
+    </ol>
+
+    <h3>默克尔树原理</h3>
+    <p>区块中所有交易的哈希两两配对，逐层向上哈希，最终形成一个唯一的<strong>默克尔根（Merkle Root）</strong>存入区块头。要验证某笔交易是否在区块中，只需提供该交易到根的路径（约 log₂N 个哈希），无需下载全部交易。这让手机钱包等"轻节点"成为可能。</p>
+
+    <div class="info-box">
+      <strong>为什么区块链"不可篡改"？</strong>每个区块的哈希依赖于其包含的交易数据和前一个区块的哈希。修改任何一个区块的任何数据都会改变其哈希，导致所有后续区块的哈希失效。攻击者必须重新完成从被篡改区块开始的所有工作量证明，这在算力上几乎不可能。
+    </div>
+
+    <div class="info-box danger">
+      <strong>量子计算威胁：</strong>大规模量子计算机若能运行 Shor 算法，将能高效分解大整数和求解离散对数，从而破解 RSA 和 ECDSA。这促使密码学界加速推进<strong>后量子密码学（PQC）</strong>标准化。区块链社区也在探索抗量子签名方案。
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>密码科普 · 密码学基础知识 &copy; 2026</p>
+</footer>
+
+<script>
+/* === 鼠标拖尾特效 === */
+(function() {
+  const C=['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const H='0123456789ABCDEFabcdef';
+  const s=document.createElement('style');
+  s.innerHTML='.trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;font-family:Consolas,Courier New,monospace;font-weight:700;animation:trail-float .9s ease-out forwards}@keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}';
+  document.head.appendChild(s);
+  let o=false;
+  document.addEventListener('mousemove',(e)=>{if(o)return;o=true;setTimeout(()=>{o=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=H[Math.floor(Math.random()*H.length)];
+      const c=C[Math.floor(Math.random()*C.length)],fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText='font-size:'+fs+'px;left:'+(e.clientX+ox)+'px;top:'+(e.clientY+oy)+'px;color:'+c+';text-shadow:0 0 6px '+c;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+</script>
+</body>
+</html>

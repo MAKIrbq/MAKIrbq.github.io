@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZKP 赛博迷宫 · 密码科普</title>
+
+<style>
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background-color:#0b1218;
+  background-image:url('../背景图.png');
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+  color:#baffff;
+  font-family:Segoe UI, Arial, sans-serif;
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+}
+
+/* 主布局：面板 + 游戏容器 + 返回 */
+#main-row{
+  display:flex;align-items:stretch;justify-content:center;
+  width:100%;max-width:1500px;
+  padding:24px 16px 0;
+  gap:0;
+}
+
+/* 左侧面板 */
+#sidePanel{
+  width:210px;min-width:210px;
+  padding:18px 16px;
+  background:rgba(2,8,20,0.6);
+  border:1px solid rgba(0,255,255,0.16);
+  backdrop-filter:blur(8px);
+  border-radius:14px 0 0 14px;
+  display:flex;flex-direction:column;gap:10px;
+  z-index:5;
+}
+#sidePanel h3{
+  margin:0;font-size:14px;
+  color:#7cfcff;letter-spacing:0.06em;
+}
+#sidePanel .row{
+  display:flex;align-items:center;justify-content:space-between;
+}
+#sidePanel label{
+  font-size:12px;color:rgba(186,255,255,0.7);
+}
+#sidePanel .pw-box{
+  display:flex;align-items:center;gap:6px;
+}
+#sidePanel .pw-text{
+  font-family:'Consolas',monospace;font-size:16px;
+  letter-spacing:0.15em;color:#ffcc00;
+  min-width:65px;text-align:center;
+}
+#sidePanel .pw-masked{color:rgba(255,204,0,0.4);}
+#pwToggle{
+  padding:4px 10px;font-size:11px;
+  color:#34fff6;background:transparent;
+  border:1px solid rgba(52,255,246,0.35);
+  border-radius:10px;cursor:pointer;
+  transition:all .2s;
+}
+#pwToggle:hover{
+  background:rgba(52,255,246,0.1);
+  border-color:rgba(52,255,246,0.6);
+}
+#sidePanel .goal-line{
+  font-size:13px;color:#baffff;
+}
+#sidePanel .stat-line{
+  font-size:12px;color:#ffcc00;
+}
+#sidePanel .msg-line{
+  font-size:12px;color:rgba(186,255,255,0.65);
+  line-height:1.5;min-height:18px;
+}
+#sidePanel .help-box{
+  margin-top:6px;padding-top:10px;
+  border-top:1px solid rgba(0,255,255,0.12);
+}
+#sidePanel .help-box .help-title{
+  font-size:12px;color:#7cfcff;letter-spacing:0.05em;margin-bottom:4px;
+}
+#sidePanel .help-box div{
+  font-size:11px;color:rgba(186,255,255,0.5);line-height:1.7;
+}
+
+/* 右侧返回区 */
+#sideRight{
+  width:140px;min-width:140px;
+  padding:18px 14px;
+  background:rgba(2,8,20,0.6);
+  border:1px solid rgba(0,255,255,0.16);
+  backdrop-filter:blur(8px);
+  border-radius:0 14px 14px 0;
+  display:flex;flex-direction:column;align-items:center;
+  gap:12px;
+  z-index:5;
+}
+#sideRight h3{
+  margin:0;font-size:14px;
+  color:#7cfcff;letter-spacing:0.06em;
+}
+#backLink{
+  display:flex;align-items:center;gap:5px;
+  color:rgba(124,252,255,0.6);text-decoration:none;font-size:13px;
+  letter-spacing:0.06em;padding:8px 14px;
+  background:rgba(2,8,20,0.45);border-radius:16px;
+  border:1px solid rgba(0,255,255,0.12);
+  transition:all .2s;white-space:nowrap;
+}
+#backLink:hover{
+  color:#00ffff;border-color:rgba(0,255,255,0.4);
+  background:rgba(0,255,255,0.08);
+}
+
+/* 游戏容器 */
+#game-wrap{
+  position:relative;
+  flex:1;height:620px;
+  overflow:hidden;
+  border:1px solid rgba(0,255,255,0.08);
+  background:rgba(5,14,30,0.78);
+}
+#game-wrap::before{
+  content:"";
+  position:absolute;inset:0;z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0,255,255,0.06), transparent 22%),
+    radial-gradient(circle at 80% 30%, rgba(255,0,255,0.08), transparent 20%);
+}
+
+canvas{display:block;position:absolute;inset:0;z-index:3;}
+
+/* 失败弹窗 */
+#modal{
+  display:none;position:absolute;inset:0;
+  background:rgba(0,0,0,0.92);
+  flex-direction:column;align-items:center;justify-content:center;
+  z-index:20;
+}
+#modalTitle{
+  font-size:42px;font-weight:900;color:#ff3366;
+  margin-bottom:24px;text-shadow:0 0 28px rgba(255,51,102,0.8);
+}
+#modalMsg{
+  font-size:28px;color:#cffcff;line-height:1.6;margin-bottom:24px;
+}
+#modalBackBtn{
+  padding:10px 32px;font-size:16px;
+  font-weight:700;color:#02060d;background:#34fff6;
+  border:none;border-radius:11px;cursor:pointer;
+  box-shadow:0 0 18px rgba(52,255,246,0.3);
+}
+#modalBackBtn:hover{background:#5bffff;}
+
+/* 科普面板 */
+#info{
+  width:100%;max-width:860px;margin:30px auto 60px;padding:0 24px;
+}
+#info .info-inner{
+  background:rgba(2,10,24,0.8);
+  border:1px solid rgba(0,255,255,0.15);
+  border-radius:18px;padding:28px 30px;
+  backdrop-filter:blur(10px);
+}
+#info h3{color:#00ffff;font-size:20px;margin:0 0 14px;letter-spacing:0.06em;}
+#info h4{color:#7cfcff;font-size:15px;margin:20px 0 6px;letter-spacing:0.04em;}
+#info p{color:#8abfc0;font-size:14px;line-height:1.9;margin:0 0 8px;}
+#info .story-block{
+  border-left:2px solid rgba(52,255,246,0.35);
+  padding-left:16px;margin:12px 0;
+}
+#info .story-block p{color:#b0d8d8;font-size:13px;line-height:2;}
+
+@media(max-width:860px){
+  #main-row{flex-direction:column;align-items:center;padding:12px 8px 0;gap:8px;}
+  #sidePanel{width:100%;min-width:unset;flex-direction:row;flex-wrap:wrap;
+    align-items:center;gap:12px;border-radius:14px 14px 0 0;padding:12px 14px;}
+  #sidePanel h3{font-size:12px;margin-right:4px;}
+  #sidePanel .pw-text{font-size:14px;min-width:50px;}
+  #sideRight{width:100%;min-width:unset;padding:12px 14px;flex-direction:row;
+    justify-content:flex-end;align-items:center;gap:12px;border-radius:0 0 14px 14px;}
+  #sideRight h3{font-size:12px;margin:0;}
+  #backLink{border-radius:16px;}
+  #game-wrap{width:100%;height:460px;border-radius:0;}
+}
+</style>
+</head>
+
+<body>
+
+<div id="main-row">
+  <!-- 左侧面板 -->
+  <div id="sidePanel">
+    <h3>验证者面板</h3>
+    <div class="row">
+      <label>秘密口令</label>
+      <div class="pw-box">
+        <span class="pw-text pw-masked" id="pwDisplay">••••••</span>
+        <button id="pwToggle" onclick="togglePassword()">显示</button>
+      </div>
+    </div>
+    <div class="goal-line" id="goal">当前要求：等待随机...</div>
+    <div class="stat-line" id="successCount">成功次数：0</div>
+    <div class="stat-line" id="probText">随机通过概率：50%</div>
+    <div class="msg-line" id="msg">移动角色到锁门处输入口令</div>
+    <div class="help-box">
+      <div class="help-title">操作说明</div>
+      <div>WASD / 方向键 移动</div>
+      <div>走到锁门处输入口令</div>
+      <div>从指定出口离开即成功</div>
+    </div>
+  </div>
+
+  <!-- 游戏区 -->
+  <div id="game-wrap">
+    <div id="modal">
+      <div style="text-align:center;">
+        <div id="modalTitle">你失败了</div>
+        <div id="modalMsg">未完成证明</div>
+        <button type="button" id="modalBackBtn" onclick="closeFailureModal()">点击返回</button>
+      </div>
+    </div>
+    <canvas id="c"></canvas>
+  </div>
+
+  <!-- 右侧返回 -->
+  <div id="sideRight">
+    <h3>导航</h3>
+    <a id="backLink" href="../index.html">◂ 返回首页</a>
+  </div>
+</div>
+
+<div id="info">
+  <div class="info-inner">
+    <h3>什么是零知识证明？</h3>
+    <p>零知识证明（Zero-Knowledge Proof，ZKP）是一种密码学协议，允许一方（证明者）向另一方（验证者）证明自己知道某个秘密，而<strong>不透露秘密本身</strong>。它兼具"完整性"（真证明者总能说服验证者）和"可靠性"（假证明者几乎不可能欺骗验证者）。</p>
+
+    <h4>阿里巴巴的山洞故事</h4>
+    <div class="story-block">
+      <p>阿里巴巴知道一个山洞暗门的咒语。他想向验证者 Victor 证明自己知道咒语，但又不想把咒语说出来。<br><br>
+      山洞有两个出口 A 和 B，中间有一扇需要咒语才能打开的暗门。<br><br>
+      验证方法如下：<br>
+      1. Victor 等在洞外，阿里巴巴从 A 或 B 任意一侧进入山洞。<br>
+      2. Victor 随机喊出 A 或 B，要求阿里巴巴从该出口出来。<br>
+      3. 如果阿里巴巴真的知道咒语，他总能从指定的出口出来（必要时穿过暗门）。<br>
+      4. 如果阿里巴巴不知道咒语，他只有 50% 的概率碰巧从正确的出口出来。<br><br>
+      重复 N 轮后，骗子成功概率仅为 (1/2)^N。重复 20 轮，概率低于百万分之一。</p>
+    </div>
+
+    <h4>为什么零知识证明重要？</h4>
+    <p>在区块链、身份验证、隐私计算等领域，零知识证明使得验证交易、身份或计算的正确性成为可能，同时保护敏感数据不被泄露。它是现代密码学通向"隐私保护"的关键技术之一。</p>
+
+    <h4>这个游戏演示了什么？</h4>
+    <p>你扮演 Victor（验证者），掌握一个秘密口令（显示在侧边栏）。你控制证明者角色移动，需要穿过锁着的暗门来到达指定出口。系统只比对口令的哈希值——证明者永远不必说出真实口令，你却能通过多轮验证逐步确信他知道口令。<strong>这就是"零知识"的核心。</strong></p>
+  </div>
+</div>
+
+<script>
+/* === 鼠标拖尾特效 === */
+(function() {
+  const C=['#00ffff','#34fff6','#7cfcff','#ff50b4','#ff88cc','#ffcc00','#ffdd44','#aa66ff'];
+  const H='0123456789ABCDEFabcdef';
+  const s=document.createElement('style');
+  s.innerHTML='.trail-char{position:fixed;pointer-events:none;z-index:9999;opacity:0;font-family:Consolas,Courier New,monospace;font-weight:700;animation:trail-float .9s ease-out forwards}@keyframes trail-float{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-22px) scale(1.6)}}';
+  document.head.appendChild(s);
+  let o=false;
+  document.addEventListener('mousemove',(e)=>{if(o)return;o=true;setTimeout(()=>{o=false},35);
+    for(let i=0;i<4;i++){
+      const el=document.createElement('span');el.className='trail-char';
+      el.textContent=H[Math.floor(Math.random()*H.length)];
+      const c=C[Math.floor(Math.random()*C.length)],fs=Math.random()*6+11;
+      const ox=(Math.random()-.5)*20,oy=(Math.random()-.5)*14;
+      el.style.cssText='font-size:'+fs+'px;left:'+(e.clientX+ox)+'px;top:'+(e.clientY+oy)+'px;color:'+c+';text-shadow:0 0 6px '+c;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+    }
+  });
+})();
+  const s=document.createElement('style');
+  let o=false;
+
+const wrap = document.getElementById('game-wrap');
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+const passwords = ['MOON','STAR','ECHO','NOVA','PULSE','ZENITH','PHANTOM','CIPHER','SHADOW','ORBIT'];
+const secretWord = passwords[Math.floor(Math.random()*passwords.length)];
+let secretHash = hash(secretWord);
+let pwVisible = false;
+
+document.getElementById('pwDisplay').textContent = '•'.repeat(secretWord.length);
+
+function togglePassword(){
+  pwVisible = !pwVisible;
+  const el = document.getElementById('pwDisplay');
+  const btn = document.getElementById('pwToggle');
+  if(pwVisible){
+    el.textContent = secretWord;
+    el.classList.remove('pw-masked');
+    btn.textContent = '隐藏';
+  }else{
+    el.textContent = '•'.repeat(secretWord.length);
+    el.classList.add('pw-masked');
+    btn.textContent = '显示';
+  }
+}
+
+const bgImg = new Image();
+bgImg.src = '../背景图.png';
+bgImg.onload = ()=>{ if(started) requestAnimationFrame(draw); };
+
+let tile = Math.min(80, Math.floor((Math.min(1200,window.innerWidth-350) - 40)/14));
+let player = {x:1,y:1};
+let lock1 = false;
+let started = false;
+let target = 'A';
+let successCount = 0;
+
+const map = [
+  [1,4,1,1,1,1,1,1,1,1,1,1,5,1],
+  [1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+  [1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,2,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+function resizeCanvas(){
+  c.width = wrap.clientWidth;
+  c.height = wrap.clientHeight;
+  tile = Math.min(80, Math.floor((c.width - 40) / 14));
+}
+resizeCanvas();
+window.addEventListener('resize',()=>{ resizeCanvas(); if(started) draw(); });
+
+function drawCanvasBackground(){
+  ctx.fillStyle = 'rgba(5,14,30,0.78)';
+  ctx.fillRect(0,0,c.width,c.height);
+}
+
+started = true;
+initStage();
+updateStats();
+requestAnimationFrame(draw);
+
+function initStage(){
+  lock1 = false;
+  target = Math.random()<0.5?'A':'B';
+  const sl={x:3,y:3}, sr={x:10,y:3};
+  player = Math.random()<0.5?sl:sr;
+  document.getElementById('goal').innerText = '当前要求：从 '+target+' 出去';
+  document.getElementById('msg').innerText = '移动角色到锁门处输入口令';
+}
+
+function resetStage(){ successCount++; updateStats(); initStage(); }
+
+function findLockGridPos(){
+  for(let y=0;y<map.length;y++) for(let x=0;x<map[y].length;x++)
+    if(map[y][x]===2) return {x,y};
+  return {x:7,y:3};
+}
+
+function getVictorGridPos(){
+  const l=findLockGridPos();
+  return {x:l.x,y:l.y-4};
+}
+
+function findExitABGrid(){
+  let a=null,b=null;
+  for(let y=0;y<map.length;y++) for(let x=0;x<map[y].length;x++){
+    if(map[y][x]===4) a={x,y};
+    if(map[y][x]===5) b={x,y};
+  }
+  return {a,b};
+}
+
+const STICK_HEAD_OFFSET_Y = 14;
+
+function drawVictorFlashlight(ctx,hx,hy,tx,ty){
+  const dx=tx-hx, dy=ty-hy;
+  const len=Math.hypot(dx,dy);
+  if(len<12) return;
+  const ba=Math.atan2(dy,dx), reach=len*1.14;
+  const tipX=hx+Math.cos(ba)*reach, tipY=hy+Math.sin(ba)*reach;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+
+  const sw=0.22;
+  ctx.beginPath();
+  ctx.moveTo(hx,hy);
+  ctx.lineTo(hx+Math.cos(ba-sw)*reach,hy+Math.sin(ba-sw)*reach);
+  ctx.lineTo(hx+Math.cos(ba+sw)*reach,hy+Math.sin(ba+sw)*reach);
+  ctx.closePath();
+  let g=ctx.createLinearGradient(hx,hy,tipX,tipY);
+  g.addColorStop(0,'rgba(180,210,255,0)');
+  g.addColorStop(0.08,'rgba(220,235,255,0.14)');
+  g.addColorStop(0.45,'rgba(255,248,220,0.12)');
+  g.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=g;ctx.fill();
+
+  const sm=0.14;
+  ctx.beginPath();
+  ctx.moveTo(hx,hy);
+  ctx.lineTo(hx+Math.cos(ba-sm)*reach,hy+Math.sin(ba-sm)*reach);
+  ctx.lineTo(hx+Math.cos(ba+sm)*reach,hy+Math.sin(ba+sm)*reach);
+  ctx.closePath();
+  g=ctx.createLinearGradient(hx,hy,tipX,tipY);
+  g.addColorStop(0,'rgba(255,255,255,0.42)');
+  g.addColorStop(0.25,'rgba(255,252,235,0.22)');
+  g.addColorStop(0.65,'rgba(255,245,210,0.08)');
+  g.addColorStop(1,'rgba(255,235,190,0)');
+  ctx.fillStyle=g;ctx.fill();
+
+  const rg=ctx.createRadialGradient(hx,hy,2,hx,hy,26);
+  rg.addColorStop(0,'rgba(255,255,255,0.35)');
+  rg.addColorStop(0.45,'rgba(255,250,230,0.12)');
+  rg.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=rg;
+  ctx.beginPath();ctx.arc(hx,hy,26,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawStickPlayer(ctx,px,py,letter){
+  const ch=letter==null?'P':String(letter).charAt(0);
+  const headR=16, headCy=py-STICK_HEAD_OFFSET_Y;
+  const shoulderY=py+2, hipY=py+16, footY=py+30;
+  ctx.save();
+  ctx.strokeStyle='#00f6ff';ctx.lineWidth=3.2;
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=0;
+  ctx.beginPath();ctx.moveTo(px,hipY);ctx.lineTo(px-14,footY);
+  ctx.moveTo(px,hipY);ctx.lineTo(px+14,footY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px,shoulderY);ctx.lineTo(px,hipY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px,shoulderY);ctx.lineTo(px-18,shoulderY+12);
+  ctx.moveTo(px,shoulderY);ctx.lineTo(px+18,shoulderY+12);ctx.stroke();
+  ctx.fillStyle='#00f6ff';ctx.shadowColor='#00f6ff';ctx.shadowBlur=20;
+  ctx.beginPath();ctx.arc(px,headCy,headR,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.font='bold 15px Segoe UI,Arial,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#061018';ctx.fillText(ch,px,headCy+0.6);
+  ctx.fillStyle='#ffffff';ctx.fillText(ch,px,headCy);
+  ctx.restore();
+}
+
+function draw(){
+  if(!started){ ctx.clearRect(0,0,c.width,c.height); return; }
+  ctx.clearRect(0,0,c.width,c.height);
+  drawCanvasBackground();
+
+  const mapW=map[0].length*tile, mapH=map.length*tile;
+  const offsetX=(c.width-mapW)/2;
+  const offsetY=Math.max(60,(c.height-mapH)/2);
+
+  for(let y=0;y<map.length;y++){
+    for(let x=0;x<map[y].length;x++){
+      const v=map[y][x];
+      const px=offsetX+x*tile, py=offsetY+y*tile;
+      if(v===1){
+        ctx.fillStyle='#09101c';ctx.fillRect(px,py,tile,tile);
+        ctx.strokeStyle='rgba(0,255,255,0.14)';ctx.lineWidth=1.5;
+        ctx.strokeRect(px,py,tile,tile);
+      }
+      if(v===0){ ctx.fillStyle='rgba(0,255,255,0.05)';ctx.fillRect(px,py,tile,tile); }
+      if(v===4||v===5){
+        ctx.fillStyle='#00ffcc';ctx.beginPath();
+        ctx.arc(px+tile/2,py+tile/2,tile*0.36,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#051010';ctx.font='bold '+(tile*0.36)+'px Arial';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(v===4?'A':'B',px+tile/2,py+tile/2);
+      }
+      if(v===2){
+        const unlocked=lock1, s=tile-36;
+        ctx.fillStyle=unlocked?'rgba(0,255,255,0.2)':'rgba(255,0,255,0.8)';
+        ctx.fillRect(px+18,py+18,s,s);
+        ctx.strokeStyle=unlocked?'#00ffff':'#ff00ff';ctx.lineWidth=3;
+        ctx.strokeRect(px+18,py+18,s,s);
+        ctx.fillStyle='#fff';ctx.font=(tile*0.32)+'px Arial';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(unlocked?'✓':'🔒',px+tile/2,py+tile/2);
+      }
+    }
+  }
+
+  const victor=getVictorGridPos();
+  const vx=offsetX+victor.x*tile+tile/2, vy=offsetY+victor.y*tile+tile/2;
+  const exits=findExitABGrid();
+  const goalExit=target==='A'?exits.a:exits.b;
+  if(goalExit){
+    const ecx=offsetX+goalExit.x*tile+tile/2, ecy=offsetY+goalExit.y*tile+tile/2;
+    drawVictorFlashlight(ctx,vx,vy-STICK_HEAD_OFFSET_Y,ecx,ecy);
+  }
+  drawStickPlayer(ctx,vx,vy,'V');
+
+  const px=offsetX+player.x*tile+tile/2, py=offsetY+player.y*tile+tile/2;
+  drawStickPlayer(ctx,px,py,'P');
+
+  if(started) requestAnimationFrame(draw);
+}
+
+function move(dx,dy){
+  if(!started) return;
+  const nx=player.x+dx, ny=player.y+dy;
+  if(ny<0||ny>=map.length||nx<0||nx>=map[0].length) return;
+  const vic=getVictorGridPos();
+  if(vic.y>=0&&vic.y<map.length&&nx===vic.x&&ny===vic.y) return;
+  const cell=map[ny][nx];
+  if(cell===2&&!lock1){ unlock(); return; }
+  if(cell!==1){ player.x=nx; player.y=ny; }
+  if(cell===4||cell===5){
+    if(target==='A'&&cell===4){ resetStage(); return; }
+    if(target==='B'&&cell===5){ resetStage(); return; }
+    showModal('你失败了','未完成证明',false);
+  }
+}
+
+function showModal(title,msg,isSuccess){
+  const modal=document.getElementById('modal');
+  document.getElementById('modalTitle').innerText=title;
+  document.getElementById('modalMsg').innerText=msg;
+  if(isSuccess){
+    document.getElementById('modalTitle').style.color='#00ffcc';
+    document.getElementById('modalTitle').style.textShadow='0 0 28px rgba(0,255,255,0.8)';
+  }else{
+    document.getElementById('modalTitle').style.color='#ff3366';
+    document.getElementById('modalTitle').style.textShadow='0 0 28px rgba(255,51,102,0.8)';
+  }
+  modal.style.display='flex';
+}
+
+function closeFailureModal(){
+  document.getElementById('modal').style.display='none';
+  restart();
+}
+
+function unlock(){
+  const input=prompt('请输入口令以证明你知道它（密码不会被显示）');
+  if(input===null) return;
+  if(hash(input.toUpperCase())===secretHash){
+    lock1=true;
+    document.getElementById('msg').innerText='🔓 验证成功：系统只验证正确性，不展示口令。';
+  }else{
+    document.getElementById('msg').innerText='❌ 验证失败：你没有提供正确口令。';
+  }
+}
+
+function restart(){
+  ctx.clearRect(0,0,c.width,c.height);
+  document.getElementById('modal').style.display='none';
+  player={x:1,y:1};lock1=false;target='A';successCount=0;
+  updateStats();
+  initStage();
+}
+
+function updateStats(){
+  document.getElementById('successCount').innerText = '成功次数：'+successCount;
+  const pp = Math.round(Math.pow(0.5, successCount+1)*10000)/100;
+  document.getElementById('probText').innerText = '随机通过概率：'+pp+'%';
+}
+
+function hash(text){
+  let h=0;
+  for(let i=0;i<text.length;i++){ h=((h<<5)-h)+text.charCodeAt(i); h|=0; }
+  return h;
+}
+
+window.addEventListener('keydown',(e)=>{
+  if(!started) return;
+  if(document.getElementById('modal').style.display==='flex') return;
+  const key=e.key.toLowerCase();
+  if(key==='w'||key==='arrowup'){ move(0,-1); e.preventDefault(); }
+  if(key==='s'||key==='arrowdown'){ move(0,1); e.preventDefault(); }
+  if(key==='a'||key==='arrowleft'){ move(-1,0); e.preventDefault(); }
+  if(key==='d'||key==='arrowright'){ move(1,0); e.preventDefault(); }
+});
+</script>
+
+</body>
+</html>
